@@ -1,10 +1,12 @@
 # GPU Audio Benchmark Suite
 
-This is a placeholder repository while code is tidied and copied in.
+Additional code is being copied in, eta 4/15.
 
-DAFx Reviewers Update 2024-04-14 - additional code forthcoming ASAP; apologies for the delay. As the code is rebased onto XCode and CUDA Visual Studio example projects, I wanted to make sure the licenses are compatible. A LICENSE has been added for GPL v3. Please note any LICENSEs in `cuda` or `metal` if spinning off a project; these are from the IDE sample projects used as a base for increased compatibility from the start.
+DAFx Reviewers Update 2024-04-14 - additional code forthcoming ASAP; apologies for the delay. As the code is rebased onto XCode and CUDA Visual Studio example projects, I wanted to make sure the licenses are compatible. A LICENSE has been added for GPL v3. 
 
-Current state is the Metal project and a set of benchmarks are checked in; benchmarks beyond those in the paper are being added next, then CUDA (eta 4/14-4/15) 
+Please note any LICENSEs in `cuda` or `metal` if spinning off a project; these are from the IDE sample projects used as a base for increased compatibility from the start.
+
+Current state is the Metal project and a set of benchmarks are checked in; benchmarks beyond those in the paper are being added next, then CUDA.
 
 Subdirectories:
 
