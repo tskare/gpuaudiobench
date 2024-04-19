@@ -11,6 +11,7 @@
 		1F0C39482BAABD9D000B994E /* GPUABenchmark.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F0C39472BAABD9D000B994E /* GPUABenchmark.m */; };
 		1F2769982BB3EC3A003FC497 /* BenchmarkDataTransfer.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F2769972BB3EC39003FC497 /* BenchmarkDataTransfer.m */; };
 		1F27699B2BB3F884003FC497 /* BenchmarkFilters.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F27699A2BB3F884003FC497 /* BenchmarkFilters.m */; };
+		1F93ED8E2BD23B1E00F7F789 /* kernels_extra.metal in Sources */ = {isa = PBXBuildFile; fileRef = 1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */; };
 		1FF9D3BA2BBA8E8500B7DCE3 /* BenchmarkRndMem.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */; };
 		3ADA093523458F4800F5A9C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3ADA093423458F4400F5A9C6 /* CoreGraphics.framework */; };
 		5FB82D19221CD515006D0331 /* MetalAdder.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FB82D18221CD515006D0331 /* MetalAdder.m */; };
@@ -41,6 +42,7 @@
 		1F2769972BB3EC39003FC497 /* BenchmarkDataTransfer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkDataTransfer.m; sourceTree = "<group>"; };
 		1F2769992BB3F884003FC497 /* BenchmarkFilters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BenchmarkFilters.h; sourceTree = "<group>"; };
 		1F27699A2BB3F884003FC497 /* BenchmarkFilters.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkFilters.m; sourceTree = "<group>"; };
+		1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = kernels_extra.metal; sourceTree = "<group>"; };
 		1F950FC82BA92261000832D7 /* globals.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = globals.h; sourceTree = "<group>"; };
 		1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkRndMem.m; sourceTree = "<group>"; };
 		1FF9D3B92BBA8E8400B7DCE3 /* BenchmarkRndMem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BenchmarkRndMem.h; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 		5FFAD4D221C8647E00384F46 /* MetalComputeBasic */ = {
 			isa = PBXGroup;
 			children = (
+				1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */,
 				1FF9D3B92BBA8E8400B7DCE3 /* BenchmarkRndMem.h */,
 				1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */,
 				1F2769992BB3F884003FC497 /* BenchmarkFilters.h */,
@@ -184,6 +187,7 @@
 				1F0C39442BAABC12000B994E /* BenchmarksMicro.m in Sources */,
 				5FB82D19221CD515006D0331 /* MetalAdder.m in Sources */,
 				1FF9D3BA2BBA8E8500B7DCE3 /* BenchmarkRndMem.m in Sources */,
+				1F93ED8E2BD23B1E00F7F789 /* kernels_extra.metal in Sources */,
 				5FFAD4D421C8647E00384F46 /* main.m in Sources */,
 				1F27699B2BB3F884003FC497 /* BenchmarkFilters.m in Sources */,
 				5FFAD4DE21C869B700384F46 /* kernels_benchmark_staging.metal in Sources */,
