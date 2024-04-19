@@ -1,6 +1,6 @@
 # Metal 
 
-Metal implementation of the benchmarks for Mac M1+.
+Metal implementation of the benchmarks for MacOS on Apple Silicon and Intel processors.
 
 ## License Notes
 
