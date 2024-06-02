@@ -6,9 +6,8 @@ Subdirectories:
 
 - `cuda` for CUDA implementation.
 - `metal` for Objective-C Metal implementation. 
-- `util` for any formatting and processing utility code as needed (none currently).
 
-All three directories are independent.
+All directories are independent. Each directory may contain its own `README.md` with details for that platform.
 
 Please note any LICENSEs in `cuda` or `metal` speficially if spinning off a project;
 these are from the IDE sample projects used as a base for increased compatibility on new developers' machines where
