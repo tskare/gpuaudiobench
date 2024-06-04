@@ -82,10 +82,27 @@ __global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats,
     mean /= BUFSIZE;
 }
 
+static void printHelp() {
+   printf("Usage: gpu-audio-benchmark [options]\n");
+	printf("Options:\n");
+	printf("  --help: Print this help message\n");
+	printf("  --benchmark [X]: Run benchmark |benchmarkName|\n");
+	printf("  --fs: set sampling rate\n");
+	printf("  --bufferSize: set buffer size\n");
+}
 /**
  * Host main routine
  */
-int main(void) {
+// main() with argc and argv:
+int main(int argc, char **argv) {
+    printf("GPGPU Audio Benchmark\n");
+    for (int i = 0; i < argc; i++) {
+		// printf("argv[%d]: %s\n", i, argv[i]);
+        if (strcmp(argv[i], "--help") == 0) {
+            printHelp();
+            return 0;
+		}
+	}
   // Error code to check return values for CUDA calls
   cudaError_t err = cudaSuccess;
 
