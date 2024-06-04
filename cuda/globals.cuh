@@ -14,25 +14,23 @@ using std::vector;
 
 
 // Global constants shared between various files.
+// Storage and defaults are in globals.cu.
 
-// CLEANUP: These should be made commandline parameters.
-#define NTRACKS 4*4096
-#define FS 48000
+// Commandline parameters:
+//extern int NTRACKS;
+extern int FS;
+//extern int BUFSIZE;
+extern int NRUNS;
+
+#define NTRACKS 256
 #define BUFSIZE 512
-#define NRUNS 100
+
 // DAW-Simultion configurable parameters
 #define ENABLE_DAWSIM_SLEEP false
 #define SLEEP_MS 90   // Inclusive of processing time
 #define ENABLE_DAWSIM_SPIN false
 
 constexpr int numElements = 50000;
-
-// Choose one of N benchmarks here.
-// This will be converted to a commandline parameter.
-#define DO_BENCHMARK_IO true
-#define DO_BENCHMARK_GAINSTATS false
-#define DO_BENCHMARK_MODAL false
-#define DO_BENCHMARK_RNDMEM false
 
 // Shared functions
 // TODO: Write to stdout or Windows console.

@@ -2,6 +2,9 @@
 
 #include "globals.cuh"
 
+#include <cuda_runtime.h>
+#include <helper_cuda.h>
+
 // Simulated quasi-granular synthesis kernel.
 // N virtual playheads read from areas of memory.
 // This is intended to exerise some of the "unfortunate" cases:
@@ -17,14 +20,16 @@ __global__ void RndMemKernel(const float* sampleMem, const int* playheads, float
     for (int i = 0; i < BUFSIZE; i++) {
         // See comments in Mac impl.
         // (CLEANUP: copy the text here)
-        outBuf[trackidx * BUFSIZE + i] = sampleMem[playhead] + i;
+
+        // Interleave samples so this access is aligned.
+        outBuf[NTRACKS*i + trackidx] = sampleMem[playhead] + i;
     }
 }
 
 void SetupBenchmarkRndMem(float **h_sampleMem, float** d_sampleMem,
 int **h_playheads, int **d_playheads,
-    float playheadsStart[NTRACKS],
-    float playheadsEnd[NTRACKS],
+    float playheadsStart[],
+    float playheadsEnd[],
     int minLoopLen,
     int maxLoopLen,
     int samplebufferEnd,
@@ -51,13 +56,12 @@ int **h_playheads, int **d_playheads,
         exit(EXIT_FAILURE);
     }
 
-
     *h_playheads = (int*)malloc(NTRACKS * sizeof(int));
     *d_playheads = NULL;
     
     err = cudaMalloc((void**)d_playheads, NTRACKS * sizeof(int));
     if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to allocate device vector A (error code %s)!\n",
+        fprintf(stderr, "Failed to allocate device vector playheads (error code %s)!\n",
             cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
@@ -93,7 +97,8 @@ void RunBenchmarkRndMem(int** d_playheads, int** h_playheads, float** d_sampleMe
         err = cudaMemcpy(*d_playheads, *h_playheads, NTRACKS * sizeof(int), cudaMemcpyHostToDevice);
         if (err != cudaSuccess) {
             fprintf(stderr,
-                "Failed to copy playhead indices to device (error code %s)!\n",
+                "Failed to copy playhead indices to device (Run %d) (error code %s)!\n",
+                i,
                 cudaGetErrorString(err));
             exit(EXIT_FAILURE);
         }
@@ -114,15 +119,17 @@ void RunBenchmarkRndMem(int** d_playheads, int** h_playheads, float** d_sampleMe
         err = cudaMemcpy(*h_out, *d_out, NTRACKS * BUFSIZE * sizeof(float), cudaMemcpyDeviceToHost);
         if (err != cudaSuccess) {
             fprintf(stderr,
-                "Failed to copy vector C from device to host (error code %s)!\n",
+                "Failed to copy output vector from device to host (Run %d) (error code %s)!\n",
+                i,
                 cudaGetErrorString(err));
             exit(EXIT_FAILURE);
         }
-        // TODO: validate (other benchmarks -- or this one if we want to test data transfer internally).
+        // TODO: validate by synthesizing on host as well.
+        // (This benchmark was validated during development by looking at the memory access patterns)
 
         // Update playheads
         for (int i = 0; i < NTRACKS; i++) {
-            h_playheads[i] += BUFSIZE;
+            (*h_playheads)[i] += BUFSIZE;
             if ((*h_playheads)[i] >= playheadsEnd[i]) {
                 (*h_playheads)[i] = playheadsStart[i];
             }
@@ -147,6 +154,6 @@ void RunBenchmarkRndMem(int** d_playheads, int** h_playheads, float** d_sampleMe
     writeVectorToFile(latencies, OUTFILE);
 
     // Free host and device global memory. Not error checking return codes since we're writing data and exit.
-    cudaFree(d_playheads); cudaFree(d_out); cudaFree(d_sampleMem);
-    free(h_playheads); free(h_out);
+    cudaFree(*d_playheads); cudaFree(*d_out); cudaFree(*d_sampleMem);
+    free(*h_playheads); free(*h_out);
 }

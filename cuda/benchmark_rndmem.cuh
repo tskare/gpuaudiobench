@@ -7,8 +7,8 @@ constexpr int kSampleMemNumElems = 512 * 1024 * 1024 / sizeof(float);
 
 void SetupBenchmarkRndMem(float** h_sampleMem, float** d_sampleMem,
     int** h_playheads, int** d_playheads,
-    float playheadsStart[NTRACKS],
-    float playheadsEnd[NTRACKS],
+    float playheadsStart[],  // size NTRACKS
+    float playheadsEnd[], // size NTRACKS
     int minLoopLen,
     int maxLoopLen,
     int samplebufferEnd,

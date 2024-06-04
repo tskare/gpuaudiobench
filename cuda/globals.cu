@@ -1,5 +1,11 @@
 #include "globals.cuh"
 
+// Storage for globals.
+int FS = 48000;
+
+//int NTRACKS = 4 * 4096;
+//int BUFSIZE = 512;
+int NRUNS = 100;
 
 #define OUTFILE "c:\\tmp\\latencies.txt"
 void writeVectorToFile(const std::vector<float>& vec, const std::string& filename) {
@@ -33,9 +39,9 @@ void printVectorStats(const std::vector<float>& vec) {
     else {
         median = sortedVec[sortedVec.size() / 2];
     }
-    float p50 = sortedVec[sortedVec.size() * 0.50];
-    float p95 = sortedVec[sortedVec.size() * 0.95];
-    float p99 = sortedVec[sortedVec.size() * 0.99];
+    const float p50 = sortedVec[sortedVec.size() * 0.50];
+    const float p95 = sortedVec[sortedVec.size() * 0.95];
+    const float p99 = sortedVec[sortedVec.size() * 0.99];
     std::cout << "p50: " << p50 << " p95: " << p95 << " p99: " << p99 << std::endl;
 
 	// Output human-readable summary
