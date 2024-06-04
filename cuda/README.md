@@ -12,18 +12,18 @@ These should also run on Linux, but the included Makefile is experimental (repos
 
 ## Status
 
-The MacOS Metal version was the primary platform during development. The CUDA version has lagged being fully tidied up, but
+The MacOS Metal version was the primary platform during development. The CUDA version has lagged being fully tidied up, but:
 
-- The single-file implementation submitted
+- The single-file implementation submitted in the first revision has been replaced with a multi-file implemntation.
 - Various cleanup tasks are in progress.
-- Parameters need to be moved to be commandline args versus requiring recompilation.
+- Parameters need to be moved to be commandline args versus requiring recompilation. `--help` is available for details.
 - Digital waveguide mesh / stenciling benchmark is in progress.
 
 ## Running (Windows)
 
-A Visual Studio 2022 project is provided but hasn't been tested on a fresh install of Windows.
+A Visual Studio 2022 project is provided. You may need to adjust the "Include Paths" to point to your CUDA headers.
 
-In case of error on your system, the code has been designed to be compiled with CUDA Toolkit sample projects:
+In case of error on your system, the code has been designed to be compiled from the CUDA Toolkits folder without modification.
 
 1. Begin with any working CUDA toolkit sample.
 1. Copy in the `.cu` and `.cuh` files, ensuring the cu files are built if needed ("Add Existing File" in Visual Studio does this automatically).
