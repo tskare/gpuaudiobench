@@ -64,6 +64,26 @@ __global__ void DataTransferBenchmarkKernel(const float* bufIn, float* bufOut, i
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 }
 
+// Conv1D, time-domain implementation, using texture memory.
+#include <cuda_texture_types.h>
+__global__ void Conv1DTextureMemoryImplKernel( 
+		const float* bufIn, float* bufOut, const cudaTextureObject_t textureRefIRs, int irLen) {
+	int whichThread = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = 0; i < BUFSIZE; i++) {
+		// Perform time-series convolution:
+		float samp = 0.0f;
+		for (int j = 0; j < irLen; j++) {
+			// CLEANUP: experiment with iterating in other directions. Though
+			// this seems to utilize caches as expected.
+			samp += tex2D<float>(textureRefIRs, whichThread, j) * bufIn[whichThread * BUFSIZE + i - j];
+		}
+		bufOut[NTRACKS * i + whichThread] = samp;
+	}
+	// v2: We could tree-sum here to reduce I/O overhead for the benchmark.
+}
+
+
 
 // Kernel to compute basic gain 
 __global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats, int numElements) {
@@ -87,7 +107,7 @@ const char* benchmarkNames[] = {
 	"GainStats",
 	"Modal",
 	"IO",
-	"Conv1D"
+	"Conv1D_Beta"
 };
 
 static void printHelp() {
@@ -188,6 +208,8 @@ int main(int argc, char** argv) {
 	int* d_playheads = nullptr;
 	float* h_stats = nullptr;
 	float* d_stats = nullptr;
+	float* h_irBuf = nullptr;
+	float* d_irBuf = nullptr;
 
 	// Following is local data that should be moved to a data struct for
 	// each corresponding benchmark:
@@ -197,6 +219,10 @@ int main(int argc, char** argv) {
 	int minLoopLen = 1000;
 	int maxLoopLen = 48000;
 	int samplebufferEnd = kSampleMemNumElems - BUFSIZE;
+	// Conv1D
+	int irLen = 1024;
+	cudaArray_t cuArrayIRs = 0;
+	cudaTextureObject_t texObjIRs = 0;
 
 	if (whichBenchmark == "IO") {
 		SetupBenchmarkIO(&h_inBuf, &h_outBuf, &d_inBuf, &d_outBuf, IOTEST_INBUFCOUNT, IOTEST_OUTBUFCOUNT);
@@ -236,12 +262,77 @@ int main(int argc, char** argv) {
 			h_inBuf[i] = rand() / (float)RAND_MAX;
 		}
 	}
+	else if (whichBenchmark == "Conv1D_Beta") {
+		// Note for small numbers of constants you may wish to use
+		// cudaMemcpyToSymbol()
+		// However, for NTRACKS each having an IR, this will not fit.
+		// This benchmark thus tries to determine the speedup, if any, of using
+		// texture memory.
+		// We don't benefit from the extra interpolation and 2D spatial locality
+		// the texture cache will provide, but might benefit from the cache
+		// being separate from the global cache (IIUC).
+		// In practice, at the time of this writing, performance seems identical
+		// between using texture memory or not.
+
+		// CLEANUP: Copy this into its own file.
+		h_inBuf = (float*)malloc(NTRACKS * BUFSIZE * sizeof(float));
+		h_outBuf = (float*)malloc(NTRACKS * BUFSIZE * sizeof(float));
+		h_irBuf = (float*)malloc(NTRACKS * irLen * sizeof(float));
+
+		err = cudaMalloc((void**)&d_inBuf, NTRACKS * BUFSIZE * sizeof(float));
+		if (err != cudaSuccess) {
+			fprintf(stderr, "Failed to allocate d_inBuf (error code %s)!\n",
+				cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+
+		err = cudaMalloc((void**)&d_outBuf, NTRACKS * BUFSIZE * sizeof(float));
+		if (err != cudaSuccess) {
+			fprintf(stderr, "Failed to allocate d_outBuf (error code %s)!\n",
+				cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+
+		err = cudaMalloc((void**)&d_irBuf, NTRACKS * irLen * sizeof(float));
+		if (err != cudaSuccess) {
+			fprintf(stderr, "Failed to allocate d_irBuf (error code %s)!\n",
+				cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+
+		// Init host vectors with random floats
+		// h_inBuf is copied to the device each iteration.
+		for (int i = 0; i < NTRACKS * BUFSIZE; i++) {
+			h_inBuf[i] = rand() / (float)RAND_MAX;
+		}
+		// Copy h_irBuf to device here and bind to texture once, as it's constant
+		for (int i = 0; i < NTRACKS * irLen; i++) {
+			h_irBuf[i] = rand() / (float)RAND_MAX;
+		}
+		auto channelDesc = cudaCreateChannelDesc<float>();
+		size_t spitch = irLen * sizeof(float);
+		cudaMallocArray(&cuArrayIRs, &channelDesc, NTRACKS, irLen);
+		cudaMemcpy2DToArray(cuArrayIRs, 0, 0, h_irBuf, spitch, NTRACKS, irLen * sizeof(float), cudaMemcpyHostToDevice);
+		struct cudaResourceDesc rDesc;
+		memset(&rDesc, 0, sizeof(rDesc));
+		rDesc.resType = cudaResourceTypeArray;
+		rDesc.res.array.array = cuArrayIRs;
+		struct cudaTextureDesc texDesc;
+		memset(&texDesc, 0, sizeof(texDesc));
+		texDesc.addressMode[0] = cudaAddressModeBorder;
+		texDesc.addressMode[1] = cudaAddressModeBorder;
+		texDesc.filterMode = cudaFilterModePoint;
+		texDesc.readMode = cudaReadModeElementType;
+		texDesc.normalizedCoords = 0;
+		err = cudaCreateTextureObject(&texObjIRs, &rDesc, &texDesc, NULL);
+		if (err != cudaSuccess) {
+			fprintf(stderr, "Failed to create texObjIRs texture object (error code %s)!\n",
+				cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+	}
 	else if (whichBenchmark == "Modal") {
 		SetupBenchmarkModal(&h_inBuf, &h_outBuf, &d_inBuf, &d_outBuf);
-	}
-	else if (whichBenchmark == "Conv1D") {
-		// TODO: merge from dev
-		// SetupConv1D(&h_inBuf, &h_outBuf, &d_inBuf, &d_outBuf, &h_irbuf, &d_irbuf);
 	}
 	else {
 		printf("Unknown benchmark (init section): %s\n", whichBenchmark.c_str());
@@ -272,7 +363,7 @@ int main(int argc, char** argv) {
 
 			err = cudaGetLastError();
 			if (err != cudaSuccess) {
-				fprintf(stderr, "Failed to launch kernel(error code %s)!\n",
+				fprintf(stderr, "Failed to launch kernel (error code %s)!\n",
 					cudaGetErrorString(err));
 				exit(EXIT_FAILURE);
 			}
@@ -282,7 +373,7 @@ int main(int argc, char** argv) {
 
 			if (err != cudaSuccess) {
 				fprintf(stderr,
-					"Failed to copy vector C from device to host (error code %s)!\n",
+					"Failed to copy d_outBuf from device to host (error code %s)!\n",
 					cudaGetErrorString(err));
 				exit(EXIT_FAILURE);
 			}
@@ -359,6 +450,56 @@ int main(int argc, char** argv) {
 		// Free host and device global memory. Not error checking since we're writing data and exit.
 		cudaFree(d_inBuf); cudaFree(d_outBuf);
 		free(h_inBuf); free(h_outBuf);
+	}
+	else if (whichBenchmark == "Conv1D_Beta") {
+		// CLEANUP: move this to its own file.
+		printf("Running Conv1D benchmark\n");
+		for (int i = 0; i < NRUNS; i++) {
+			auto start = std::chrono::high_resolution_clock::now();
+
+			err = cudaMemcpy(d_inBuf, h_inBuf, NTRACKS * BUFSIZE * sizeof(float), cudaMemcpyHostToDevice);
+			if (err != cudaSuccess) {
+				fprintf(stderr,
+					"Failed to copy vector input from host to device (error code %s)!\n",
+					cudaGetErrorString(err));
+				exit(EXIT_FAILURE);
+			}
+
+			// Launch the CUDA Kernel
+			constexpr int threadsPerBlock = 32;
+			constexpr int numElements = NTRACKS;
+			int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+			Conv1DTextureMemoryImplKernel << <blocksPerGrid, threadsPerBlock >> > (d_inBuf, d_outBuf, texObjIRs, irLen);
+
+			err = cudaGetLastError();
+			if (err != cudaSuccess) {
+				fprintf(stderr, "Failed to launch Conv1D kernel (error code %s)!\n",
+					cudaGetErrorString(err));
+				exit(EXIT_FAILURE);
+			}
+
+			// Copy result back out
+			err = cudaMemcpy(h_outBuf, d_outBuf, NTRACKS * BUFSIZE * sizeof(float), cudaMemcpyDeviceToHost);
+
+			if (err != cudaSuccess) {
+				fprintf(stderr,
+					"Failed to copy convolved audio buffer from device to host (error code %s)!\n",
+					cudaGetErrorString(err));
+				exit(EXIT_FAILURE);
+			}
+			auto end = std::chrono::high_resolution_clock::now();
+			// Compute the duration in milliseconds
+			std::chrono::duration<float, std::milli> duration = end - start;
+			latencies.push_back(duration.count());
+			cout << "Duration: " << duration.count() << "ms" << endl;
+		}
+		printVectorStats(latencies);
+		writeVectorToFile(latencies, OUTFILE);
+
+		cudaFree(d_inBuf); cudaFree(d_outBuf); cudaFree(d_irBuf);
+		free(h_inBuf); free(h_outBuf); free(h_irBuf);
+		cudaDestroyTextureObject(texObjIRs);
+		cudaFreeArray(cuArrayIRs);
 	}
 	else if (whichBenchmark == "Modal") {
 		RunBenchmarkModal(&d_inBuf, &h_inBuf, &d_outBuf, &h_outBuf, kNumModes, kNumModeParams, latencies);
