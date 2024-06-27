@@ -20,6 +20,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+@interface BenchmarkConvolution : GPUABenchmark
+- (instancetype) initWithDevice: (id<MTLDevice>) device;
+- (void) setup;
+- (void) runBenchmark: (NSArray*) latencies;
+- (NSString*) getKernelName;
+
+// Number of modes in the filter bank
+@property int irLen;
+
+@end
+
 
 NS_ASSUME_NONNULL_END
 

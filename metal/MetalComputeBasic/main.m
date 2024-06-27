@@ -12,13 +12,39 @@
 
 // Storage for globals and commandline flags.
 int flagBufferSize = 512;
-NSString *benchmarkName = @"RndMemRead";
+NSString *benchmarkName = @"Conv1D";
 int fs = 48000;
-int nTracks = 4*4096;
+int nTracks = 32; // e.g. large: 4*4096;
 int nRuns = 100;
 
+// Help string
+NSString *helpString = @"Usage: ./GPUAudioBench --buffersize 512 --benchmark Conv1D --fs 48000 --ntracks 128"
+                       @"Supported benchmarks: \n"
+                            @"  datacopy0199\n"
+                            @"  datacopy2080\n"
+                            @"  datacopy5050\n"
+                            @"  datacopy8020\n"
+                            @"  datacopy9901\n"
+                            @"  gain\n"
+                            @"  NoopKernelLaunch\n"
+                            @"  IIRFilter\n"
+                            @"  ModalFilterBank\n"
+                            @"  RndMemRead\n"
+                            @"  Conv1D\n"
+                          @"Optional flags:\n"
+                            @"  --dawsim: Simulate DAW-like behavior\n"
+                            @"  --dawsim_delay: Simulated buffer interarrival time in milliseconds\n"
+                            @"  --skip-human-readable-summary: Disable human-readable summary\n"
+                            @"  --nruns: Number of runs\n"
+                            @"  --help: Print this help message\n"
+                            @"  --outputfile: Output file for stats [currently set by benchmarks dynamically]\n"
+                           ;
+
+// Feature flags storage
+bool flagIncludeHumanReadableSummary = true;
+// DAW Simulation configuration
 bool dawsim = false;
-double dawsim_delay = 0.07;
+double dawsim_delay = 0.07;  // Variable while debugging. Production cases, use (bufferSize/FS)
 
 void fetchNextInteger(NSArray<NSString *> *args, NSString *key, int *value) {
     NSUInteger index = [args indexOfObject:key];
@@ -38,6 +64,23 @@ void printLatencyStats(NSMutableArray<NSNumber*> *latencies) {
     NSLog(@"max: %@", [latencies lastObject]);
     // Paper format line
     NSLog(@"%@ & %@", [latencies objectAtIndex:idx50p], [latencies objectAtIndex:idx95p]);
+
+    // Human-readable summary:
+    if (flagIncludeHumanReadableSummary) {
+        float maxAllowableLatency = 1000.0f*flagBufferSize/fs;
+        float latencyMax = [[latencies lastObject] floatValue];
+        float latency_p95 = [[latencies objectAtIndex:idx50p] floatValue];
+        float latency_median = [[latencies objectAtIndex:idx50p] floatValue];
+        if (latency_median > maxAllowableLatency) {
+            NSLog(@"WARNING: median latency %0.3f ms over %0.3f ms callback time limit.", latency_median, maxAllowableLatency);
+        } else if (latency_p95 > maxAllowableLatency) {
+            NSLog(@"WARNING: p95 latency %0.3f ms over %0.3f ms callback time limit (median ok).", latency_p95, maxAllowableLatency);
+        } else if (latencyMax > maxAllowableLatency) {
+            NSLog(@"WARNING: max latency %0.3f ms over %0.3f ms callback time limit (median, p95 ok).", latencyMax, maxAllowableLatency);
+        } else {
+            NSLog(@"OK: max latency %0.3f ms under %0.3f ms callback time limit. Please consider a margin of safety as well.", latencyMax, maxAllowableLatency);
+        }
+    }
 }
 void writeArrayToFile(NSString *filename_unused, NSArray *arr) {
     NSString *fileName = [NSString stringWithFormat:@"/tmp/gpubench_%@_%d_%d.txt", benchmarkName, flagBufferSize, nTracks];
@@ -56,7 +99,7 @@ void writeArrayToFile(NSString *filename_unused, NSArray *arr) {
         // Handle error
         NSLog(@"Error writing to file %@: %@", fileName, error.localizedDescription);
     } else {
-        NSLog(@"File written successfully");
+        NSLog(@"Success writing output stats to %@", fileName);
     }
 }
 
@@ -84,6 +127,17 @@ int main(int argc, const char * argv[]) {
                 fetchNextInteger(args, @"--fs", &fs);
             } else if ([arg isEqualToString:@"--ntracks"]) {
                 fetchNextInteger(args, @"--ntracks", &nTracks);
+            } else if ([arg isEqualToString:@"--nruns"]) {
+                fetchNextInteger(args, @"--nruns", &nRuns);
+            } else if ([arg isEqualToString:@"--dawsim"]) {
+                dawsim = true;
+            } else if ([arg isEqualToString:@"--dawsim_delay"]) {
+                fetchNextString(arg, ^(NSString *value) { dawsim_delay = [value doubleValue]; });
+            } else if ([arg isEqualToString:@"--skip-human-readable-summary"]) {
+                flagIncludeHumanReadableSummary = false;
+            } else if ([arg isEqualToString:@"--help"]) {
+                NSLog(@"%@", helpString);
+                exit(0);
             }
         }];
         
@@ -138,6 +192,8 @@ int main(int argc, const char * argv[]) {
             benchmark = [[BenchmarkModalBank alloc] initWithDevice:device];
         } else if ([benchmarkName isEqual:@"RndMemRead"]) {
             benchmark = [[BenchmarkRndMem alloc] initWithDevice:device];
+        } else if ([benchmarkName isEqual:@"Conv1D"]) {
+            benchmark = [[BenchmarkConvolution alloc] initWithDevice:device];
         } else {
             NSLog(@"Unknown benchmark name: %@", benchmarkName);
             exit(1);

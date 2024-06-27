@@ -15,4 +15,7 @@ extern int nTracks;
 
 extern bool dawsim;
 
+// Cleanup: Move to BenchmarkFilters and pass into the kernel.
+#define CONV1D_IRSIZE 256
+
 #endif /* globals_h */

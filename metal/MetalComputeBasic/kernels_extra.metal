@@ -13,9 +13,7 @@ using namespace metal;
 //   Note: len(|inSignal|) will be larger than DAW's BUFSIZE [e.g. 512], as we
 //   include state at the end of the buffer.
 // as, bs: likewise grouped by which-parameter.
-// outState:
 // outAudio: processed version if |inSignal|. Full track count.
-//   Next run should
 // Note that for large track counts and small nFilters, this stresses I/O.
 // As this benchmark overlaps narrower ones, results were not used in the paper.
 kernel void BenchmarkFilters_Biquad_N(device const float* inSignal,

@@ -11,7 +11,7 @@
 		1F0C39482BAABD9D000B994E /* GPUABenchmark.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F0C39472BAABD9D000B994E /* GPUABenchmark.m */; };
 		1F2769982BB3EC3A003FC497 /* BenchmarkDataTransfer.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F2769972BB3EC39003FC497 /* BenchmarkDataTransfer.m */; };
 		1F27699B2BB3F884003FC497 /* BenchmarkFilters.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F27699A2BB3F884003FC497 /* BenchmarkFilters.m */; };
-		1F93ED8E2BD23B1E00F7F789 /* kernels_extra.metal in Sources */ = {isa = PBXBuildFile; fileRef = 1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */; };
+		1F93ED8C2BD23AC700F7F789 /* kernels_extra.metal in Sources */ = {isa = PBXBuildFile; fileRef = 1F93ED8B2BD23AC700F7F789 /* kernels_extra.metal */; };
 		1FF9D3BA2BBA8E8500B7DCE3 /* BenchmarkRndMem.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */; };
 		3ADA093523458F4800F5A9C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3ADA093423458F4400F5A9C6 /* CoreGraphics.framework */; };
 		5FB82D19221CD515006D0331 /* MetalAdder.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FB82D18221CD515006D0331 /* MetalAdder.m */; };
@@ -42,7 +42,7 @@
 		1F2769972BB3EC39003FC497 /* BenchmarkDataTransfer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkDataTransfer.m; sourceTree = "<group>"; };
 		1F2769992BB3F884003FC497 /* BenchmarkFilters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BenchmarkFilters.h; sourceTree = "<group>"; };
 		1F27699A2BB3F884003FC497 /* BenchmarkFilters.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkFilters.m; sourceTree = "<group>"; };
-		1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = kernels_extra.metal; sourceTree = "<group>"; };
+		1F93ED8B2BD23AC700F7F789 /* kernels_extra.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = kernels_extra.metal; sourceTree = "<group>"; };
 		1F950FC82BA92261000832D7 /* globals.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = globals.h; sourceTree = "<group>"; };
 		1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BenchmarkRndMem.m; sourceTree = "<group>"; };
 		1FF9D3B92BBA8E8400B7DCE3 /* BenchmarkRndMem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BenchmarkRndMem.h; sourceTree = "<group>"; };
@@ -50,7 +50,7 @@
 		5FB82D17221CD515006D0331 /* MetalAdder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetalAdder.h; sourceTree = "<group>"; };
 		5FB82D18221CD515006D0331 /* MetalAdder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MetalAdder.m; sourceTree = "<group>"; };
 		5FB82D1A221CE2C7006D0331 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		5FFAD4D021C8647E00384F46 /* MetalComputeBasic */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MetalComputeBasic; sourceTree = BUILT_PRODUCTS_DIR; };
+		5FFAD4D021C8647E00384F46 /* GPUAudioBench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = GPUAudioBench; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FFAD4D321C8647E00384F46 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		5FFAD4DB21C8648800384F46 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		5FFAD4DD21C869B700384F46 /* kernels_benchmark_staging.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = kernels_benchmark_staging.metal; sourceTree = "<group>"; };
@@ -91,7 +91,7 @@
 		5FFAD4D121C8647E00384F46 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5FFAD4D021C8647E00384F46 /* MetalComputeBasic */,
+				5FFAD4D021C8647E00384F46 /* GPUAudioBench */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -99,7 +99,6 @@
 		5FFAD4D221C8647E00384F46 /* MetalComputeBasic */ = {
 			isa = PBXGroup;
 			children = (
-				1F93ED8D2BD23B1E00F7F789 /* kernels_extra.metal */,
 				1FF9D3B92BBA8E8400B7DCE3 /* BenchmarkRndMem.h */,
 				1FF9D3B82BBA8E8400B7DCE3 /* BenchmarkRndMem.m */,
 				1F2769992BB3F884003FC497 /* BenchmarkFilters.h */,
@@ -112,6 +111,7 @@
 				5FB82D17221CD515006D0331 /* MetalAdder.h */,
 				5FB82D18221CD515006D0331 /* MetalAdder.m */,
 				5FFAD4DD21C869B700384F46 /* kernels_benchmark_staging.metal */,
+				1F93ED8B2BD23AC700F7F789 /* kernels_extra.metal */,
 				1F950FC82BA92261000832D7 /* globals.h */,
 				1F0C39462BAABD5A000B994E /* GPUABenchmark.h */,
 				1F0C39472BAABD9D000B994E /* GPUABenchmark.m */,
@@ -131,9 +131,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5FFAD4CF21C8647E00384F46 /* MetalComputeBasic */ = {
+		5FFAD4CF21C8647E00384F46 /* GPUAudioBench */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5FFAD4D721C8647E00384F46 /* Build configuration list for PBXNativeTarget "MetalComputeBasic" */;
+			buildConfigurationList = 5FFAD4D721C8647E00384F46 /* Build configuration list for PBXNativeTarget "GPUAudioBench" */;
 			buildPhases = (
 				5FFAD4CC21C8647E00384F46 /* Sources */,
 				5FFAD4CD21C8647E00384F46 /* Frameworks */,
@@ -143,9 +143,9 @@
 			);
 			dependencies = (
 			);
-			name = MetalComputeBasic;
+			name = GPUAudioBench;
 			productName = MetalComputeBasic;
-			productReference = 5FFAD4D021C8647E00384F46 /* MetalComputeBasic */;
+			productReference = 5FFAD4D021C8647E00384F46 /* GPUAudioBench */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -174,7 +174,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5FFAD4CF21C8647E00384F46 /* MetalComputeBasic */,
+				5FFAD4CF21C8647E00384F46 /* GPUAudioBench */,
 			);
 		};
 /* End PBXProject section */
@@ -184,10 +184,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1F93ED8C2BD23AC700F7F789 /* kernels_extra.metal in Sources */,
 				1F0C39442BAABC12000B994E /* BenchmarksMicro.m in Sources */,
 				5FB82D19221CD515006D0331 /* MetalAdder.m in Sources */,
 				1FF9D3BA2BBA8E8500B7DCE3 /* BenchmarkRndMem.m in Sources */,
-				1F93ED8E2BD23B1E00F7F789 /* kernels_extra.metal in Sources */,
 				5FFAD4D421C8647E00384F46 /* main.m in Sources */,
 				1F27699B2BB3F884003FC497 /* BenchmarkFilters.m in Sources */,
 				5FFAD4DE21C869B700384F46 /* kernels_benchmark_staging.metal in Sources */,
@@ -354,7 +354,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5FFAD4D721C8647E00384F46 /* Build configuration list for PBXNativeTarget "MetalComputeBasic" */ = {
+		5FFAD4D721C8647E00384F46 /* Build configuration list for PBXNativeTarget "GPUAudioBench" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5FFAD4D821C8647E00384F46 /* Debug */,
