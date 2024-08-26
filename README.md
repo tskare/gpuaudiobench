@@ -1,5 +1,21 @@
 # GPU Audio Benchmark Suite
 
+## Greetings DAFx24 readers!
+
+Please feel free to mail with any questions, and if you're at the conference, possibly see you at Friday afternoon's session.
+
+Please check back later this week when I'll have a v1.5 available that contains:
+
++ code with better names and more comments, for display on the virtual poster.
++ facility for running multiple benchmarks or all of them, for a smoother demo.
++ additional client-side validations that were omitted in this repo.
++ fixes made for the revised version that were omitted in this repo.
++ additional benchmark
+
+You'll always be able to access the earlier version with the `v1.0` tag.
+
+## Project Overview
+
 This project contains microbenchmarks and domain-specific benchmarks towards qualifying platforms for real-time GPGPU audio use. 
 
 Subdirectories:
