@@ -22,6 +22,7 @@ Subdirectories:
 
 - `cuda` for CUDA implementation.
 - `metal` for Objective-C Metal implementation. 
+- `media` for artifacts like the DAFx24 poster. 
 
 Directories are independent but checked out in the same repository. Each directory may contain its own `README.md` with details for that platform.
 
