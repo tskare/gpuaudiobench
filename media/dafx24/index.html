@@ -1,9 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
+
+<!-- TODO: possibly move any web resources (e.g. Shoelace) to local copy in case we don't have internet access there. -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Setup key controls help dialog.
+        const dialog = document.querySelector('.help_keycombos');
+        const openButton = dialog.nextElementSibling;
+        const closeButton = dialog.querySelector('sl-button[slot="footer"]');
+        openButton.addEventListener('click', () => dialog.show());
+        closeButton.addEventListener('click', () => dialog.hide());
+
+        // Replace <ipsum> with dummy content until we generate real poster text.
+        var ipsumTags = document.getElementsByTagName("ipsum");
+        for (var i = 0; i < ipsumTags.length; i++) {
+            ipsumTags[i].innerHTML = `
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore 
+                et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
+                aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum 
+                dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
+                officia deserunt mollit anim id est laborum.`
+        }
+    });
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "?") {
+            showModal();
+        }
+    });
+</script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPGPU Audio Benchmark Suite</title>
+    <link rel="stylesheet" media="(prefers-color-scheme:light)"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css" />
+    <link rel="stylesheet" media="(prefers-color-scheme:dark)"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/dark.css"
+        onload="document.documentElement.classList.add('sl-theme-dark');" />
+    <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/shoelace-autoloader.js"></script>
     <style>
         body {
             margin: 0;
@@ -12,45 +48,82 @@
             background-color: #333;
             color: #eee;
         }
-        
+
         .top-bar {
             padding: 10px;
             text-align: center;
         }
-        
+
         .content {
             display: flex;
             justify-content: space-between;
             padding: 20px;
         }
-        
+
         .column {
             flex-basis: 50%;
         }
-        
+
         .bottom-bar {
             padding: 10px;
             text-align: center;
         }
     </style>
 </head>
+
 <body>
     <div class="top-bar">
         <h1>GPGPU Audio Benchmark Suite</h1>
     </div>
-    
+
     <div class="content">
         <div class="column">
-            Left content area
+            <h2>Overview</h2>
+            <h2>Goals</h2>
+
         </div>
-        
+
         <div class="column">
-            Right content area
+            Choose a benchmark:
+            <sl-tab-group>
+                <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
+                <sl-tab slot="nav" panel="bench_modal">Modal</sl-tab>
+                <sl-tab slot="nav" panel="bench_conv1d">Conv1D</sl-tab>
+                <sl-tab slot="nav" panel="bench_conv2d" disabled>Conv2D</sl-tab>
+
+                <sl-tab-panel name="bench_io">
+                    <h3>This is the bench_io tab panel.</h3>
+                    Code:
+                    <div>
+                        <ipsum/>
+                    </div>
+                    Results:
+                    <div>
+                        <ipsum/>
+                    </div>
+                </sl-tab-panel>
+                <sl-tab-panel name="bench_modal">This is the bench_modal tab panel.</sl-tab-panel>
+                <sl-tab-panel name="bench_conv1d">This is the bench_conv1d tab panel.</sl-tab-panel>
+                <sl-tab-panel name="bench_conv2d">This is a disabled/bench_conv2d tab panel.</sl-tab-panel>
+            </sl-tab-group>
         </div>
     </div>
-    
+
+    <sl-dialog class="help_keycombos">
+        <h3>Keyboard Controls</h3>
+        <ul>
+            <li><kbd>?</kbd> - Show this dialog</li>
+        </ul>
+        <sl-button slot="footer" variant="primary">Close</sl-button>
+    </sl-dialog>
+
     <div class="bottom-bar">
-        <p>Bottom bar content</p>
+        <p>
+            <sl-button onclick="showModal()">Controls [?]</sl-button>
+        </p>
+        </p>
     </div>
 </body>
+
 </html>
+
