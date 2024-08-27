@@ -11,7 +11,7 @@
         openButton.addEventListener('click', () => dialog.show());
         closeButton.addEventListener('click', () => dialog.hide());
 
-        // Replace <ipsum> with dummy content until we generate real poster text.
+        // Replace <ipsum> with dummy content onload until we generate real poster text.
         var ipsumTags = document.getElementsByTagName("ipsum");
         for (var i = 0; i < ipsumTags.length; i++) {
             ipsumTags[i].innerHTML = `
@@ -93,14 +93,22 @@
 
                 <sl-tab-panel name="bench_io">
                     <h3>This is the bench_io tab panel.</h3>
-                    Code:
-                    <div>
+                    <sl-card class="card-header">
+                        <div slot="header">
+                          Code
+                          <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+                        </div>
+                        <pre>
                         <ipsum/>
-                    </div>
-                    Results:
-                    <div>
+                        </pre>
+                    </sl-card>
+                    <sl-card class="card-header">
+                        <div slot="header">
+                          Results
+                          <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+                        </div>
                         <ipsum/>
-                    </div>
+                    </sl-card>
                 </sl-tab-panel>
                 <sl-tab-panel name="bench_modal">This is the bench_modal tab panel.</sl-tab-panel>
                 <sl-tab-panel name="bench_conv1d">This is the bench_conv1d tab panel.</sl-tab-panel>
