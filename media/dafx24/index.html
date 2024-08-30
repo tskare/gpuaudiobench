@@ -11,6 +11,10 @@
         openButton.addEventListener('click', () => dialog.show());
         closeButton.addEventListener('click', () => dialog.hide());
 
+        // Setup for references dialog
+        document.querySelector('#btnRefs').addEventListener('click', () => document.querySelector('.help_refs').show());
+        document.querySelector('#btnrefsClose').addEventListener('click', () => document.querySelector('.help_refs').hide());   
+
         // Replace .ipsum-class elements with dummy content onload until we generate real poster text.
         var ipsumTags = document.querySelectorAll(".ipsum");
         for (var i = 0; i < ipsumTags.length; i++) {
@@ -195,9 +199,26 @@ int main() {
         <sl-button id="btnControlsClose" slot="footer" variant="primary">Close</sl-button>
     </sl-dialog>
 
+    <sl-dialog class="help_refs">
+        <h3>References - Poster</h3>
+        <ul>
+            <li>Background image and DAFx logo provided by DAFx 27 conference organizers</li>
+            <li><a href="https://shoelace.style/" target="_blank">Shoelace</a> used for styling and buttons/cards components</li>
+            <li><a href="https://highlightjs.org/" target="_blank">highlight.js</a> used for syntax highlighting</li>
+        </ul>
+        <sl-button id="btnrefsClose" slot="footer" variant="primary">Close</sl-button>
+        <h3>References - Paper</h3>
+        <ul>
+            <li>Placeholder</li>
+            <li>Placeholder</li>
+            <li>Placeholder</li>
+        </ul>
+    </sl-dialog>
+
     <div class="bottom-bar">
         <p>
             <sl-button id="btnPaper">Paper</sl-button>
+            <sl-button id="btnRefs">References</sl-button>
             <sl-button id="btnControls">Controls</sl-button>
         </p>
         </p>
