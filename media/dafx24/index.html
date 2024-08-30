@@ -21,6 +21,9 @@
                 dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
                 officia deserunt mollit anim id est laborum.`
         }
+
+        // Syntax highlighting
+        hljs.highlightAll();
     });
 
     document.addEventListener("keydown", function(event) {
@@ -33,6 +36,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPGPU Audio Benchmark Framework</title>
+
+    <!-- Import Shoelace via CDN for buttons and styling -->
     <link rel="stylesheet" media="(prefers-color-scheme:light)"
         href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css" />
     <link rel="stylesheet" media="(prefers-color-scheme:dark)"
@@ -40,6 +45,14 @@
         onload="document.documentElement.classList.add('sl-theme-dark');" />
     <script type="module"
         src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/shoelace-autoloader.js"></script>
+    
+    <!-- Import highlight.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/dark.min.css">-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> -->
+
+    <!-- Onto our CSS -->
     <style>
         html, body {
             height:100%;
@@ -148,9 +161,16 @@
                           Code
                           <sl-icon-button name="gear" label="Settings"></sl-icon-button>
                         </div>
-                        <pre>
-                        <div class="ipsum"></div>
-                        </pre>
+<pre>
+<code class="language-cpp">#include &lt;hey.h&gt;
+#include "stdio.h"
+
+int main() {
+    printf("Hello, world!\n");
+    return 0;
+}
+
+</code></pre>
                     </sl-card>
                     <sl-card class="card-header">
                         <div slot="header">
