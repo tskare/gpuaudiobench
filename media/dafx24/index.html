@@ -32,7 +32,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPGPU Audio Benchmark Suite</title>
+    <title>GPGPU Audio Benchmark Framework</title>
     <link rel="stylesheet" media="(prefers-color-scheme:light)"
         href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css" />
     <link rel="stylesheet" media="(prefers-color-scheme:dark)"
@@ -45,8 +45,33 @@
             margin: 0;
             padding: 0;
             font-family: Helvetica, Arial, sans-serif;
-            background-color: #333;
-            color: #eee;
+            background-color: #222;
+            color: #d4d4d4;    
+        }
+
+        /* background image provided by DAFx conference */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('DAFx24Background-16-9.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.35;
+            z-index: -1;
+        }
+
+        .floating-logo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 200px;
+            height: auto;
+            z-index: 100;
         }
 
         .top-bar {
@@ -63,6 +88,8 @@
         .column {
             flex-basis: 50%;
         }
+        .column { margin-right: 50px; }
+        .column + .column { margin-left: 50px; }
 
         .bottom-bar {
             padding: 10px;
@@ -73,17 +100,26 @@
 
 <body>
     <div class="top-bar">
-        <h1>GPGPU Audio Benchmark Suite</h1>
+        <h1>GPGPU Audio Benchmark Framework</h1>
     </div>
+
+    <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
 
     <div class="content">
         <div class="column">
-            <h2>Overview</h2>
-            <h2>Goals</h2>
-
+            <h2>Overview and Goals</h2>
+            <div>
+                <ipsum/>
+            </div>
+            <h2>Implementation</h2>
+            <div>
+                <ipsum/>
+            </div>
         </div>
 
+
         <div class="column">
+            <h2>Results</h2>
             Choose a benchmark:
             <sl-tab-group>
                 <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
