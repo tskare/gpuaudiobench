@@ -5,9 +5,9 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         // Setup key controls help dialog.
+        const openButton = document.querySelector('#btnControls');
+        const closeButton = document.querySelector('#btnControlsClose');
         const dialog = document.querySelector('.help_keycombos');
-        const openButton = dialog.nextElementSibling;
-        const closeButton = dialog.querySelector('sl-button[slot="footer"]');
         openButton.addEventListener('click', () => dialog.show());
         closeButton.addEventListener('click', () => dialog.hide());
 
@@ -25,7 +25,7 @@
 
     document.addEventListener("keydown", function(event) {
         if (event.key === "?") {
-            showModal();
+            // TODO
         }
     });
 </script>
@@ -41,9 +41,13 @@
     <script type="module"
         src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/shoelace-autoloader.js"></script>
     <style>
-        body {
+        html, body {
+            height:100%;
             margin: 0;
             padding: 0;
+        }
+        
+        body {
             font-family: Helvetica, Arial, sans-serif;
             background-color: #222;
             color: #d4d4d4;    
@@ -52,7 +56,7 @@
             text-justify: inter-word;
         }
 
-        /* background image provided by DAFx conference */
+        /* Background image provided by DAFx conference. */
         body::before {
             content: "";
             position: absolute;
@@ -82,7 +86,14 @@
             text-align: center;
         }
 
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
         .content {
+            flex: 1; 
             display: flex;
             justify-content: space-between;
             padding: 40px;
@@ -102,12 +113,12 @@
 </head>
 
 <body>
+<div id="container">
     <div class="top-bar">
         <h1>GPGPU Audio Benchmark Framework</h1>
     </div>
 
     <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
-
     <div class="content">
         <div class="column">
             <h2>Overview and Goals</h2>
@@ -161,15 +172,17 @@
         <ul>
             <li><kbd>?</kbd> - Show this dialog</li>
         </ul>
-        <sl-button slot="footer" variant="primary">Close</sl-button>
+        <sl-button id="btnControlsClose" slot="footer" variant="primary">Close</sl-button>
     </sl-dialog>
 
     <div class="bottom-bar">
         <p>
-            <sl-button onclick="showModal()">Controls [?]</sl-button>
+            <sl-button id="btnPaper">Paper</sl-button>
+            <sl-button id="btnControls">Controls</sl-button>
         </p>
         </p>
     </div>
+</div> <!-- #container -->
 </body>
 
 </html>
