@@ -11,8 +11,8 @@
         openButton.addEventListener('click', () => dialog.show());
         closeButton.addEventListener('click', () => dialog.hide());
 
-        // Replace <ipsum> with dummy content onload until we generate real poster text.
-        var ipsumTags = document.getElementsByTagName("ipsum");
+        // Replace .ipsum-class elements with dummy content onload until we generate real poster text.
+        var ipsumTags = document.querySelectorAll(".ipsum");
         for (var i = 0; i < ipsumTags.length; i++) {
             ipsumTags[i].innerHTML = `
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore 
@@ -47,6 +47,9 @@
             font-family: Helvetica, Arial, sans-serif;
             background-color: #222;
             color: #d4d4d4;    
+            /* fully-justify */
+            text-align: justify;
+            text-justify: inter-word;
         }
 
         /* background image provided by DAFx conference */
@@ -82,7 +85,7 @@
         .content {
             display: flex;
             justify-content: space-between;
-            padding: 20px;
+            padding: 40px;
         }
 
         .column {
@@ -108,12 +111,12 @@
     <div class="content">
         <div class="column">
             <h2>Overview and Goals</h2>
-            <div>
-                <ipsum/>
-            </div>
+                <div class="ipsum"></div>
             <h2>Implementation</h2>
             <div>
-                <ipsum/>
+                <div class="ipsum"></div>
+                <div class="ipsum"></div>
+                <div class="ipsum"></div>
             </div>
         </div>
 
@@ -135,7 +138,7 @@
                           <sl-icon-button name="gear" label="Settings"></sl-icon-button>
                         </div>
                         <pre>
-                        <ipsum/>
+                        <div class="ipsum"></div>
                         </pre>
                     </sl-card>
                     <sl-card class="card-header">
@@ -143,7 +146,7 @@
                           Results
                           <sl-icon-button name="gear" label="Settings"></sl-icon-button>
                         </div>
-                        <ipsum/>
+                        <div class="ipsum"></div>
                     </sl-card>
                 </sl-tab-panel>
                 <sl-tab-panel name="bench_modal">This is the bench_modal tab panel.</sl-tab-panel>
