@@ -66,7 +66,8 @@
         
         body {
             font-family: Helvetica, Arial, sans-serif;
-            background-color: #222;
+            font-size: 1.1em;
+            background-color: #111;
             color: #d4d4d4;    
             /* fully-justify */
             text-align: justify;
@@ -85,7 +86,7 @@
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
-            opacity: 0.35;
+            opacity: 0.25;
             z-index: -1;
         }
 
@@ -147,6 +148,9 @@
     <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
     <div class="content">
         <div class="column">
+            <h2>Abstract</h2>
+            <div>Acceleration of audio workloads on generally-programmable GPU (GPGPU) hardware offers potentially high speedup factors, but also presents challenges in terms of development and deployment. We can increasingly depend on such hardware being available in users' systems, yet few real-time audio products use this resource.</div>
+            <div>We propose a suite of benchmarks to qualify a GPU as suitable for batch or real-time audio processing. This includes both microbenchmarks and higher-level audio domain benchmarks. We choose metrics based on application, paying particularly close attention to latency tail distribution. We propose an extension to the benchmark framework to more accurately simulate the real-world request pattern and performance requirements when running in a digital audio workstation. We run these benchmarks on two common consumer-level platforms: a PC desktop with a recent mid-range discrete GPU and a Macintosh desktop with unified CPU-GPU memory architecture.</div>
             <h2>Overview and Goals</h2>
                 <div class="ipsum"></div>
             <h2>Implementation</h2>
