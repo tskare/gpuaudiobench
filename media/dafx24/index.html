@@ -126,6 +126,15 @@
             padding: 10px;
             text-align: center;
         }
+        #qr-code-container {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            z-index: 100;
+            display: inline-block;
+            padding: 6px;
+            background-color: #ccc;
+        }
     </style>
 </head>
 
@@ -220,6 +229,14 @@ int main() {
             <sl-button id="btnPaper">Paper</sl-button>
             <sl-button id="btnRefs">References</sl-button>
             <sl-button id="btnControls">Controls</sl-button>
+            <div id="qr-code-container">
+            <sl-qr-code
+                value="https://github.com/tskare/gpuaudiobench"
+                label="GitHub repo"
+                size="100"
+                background="#CCC"></sl-qr-code>
+            </div>
+
         </p>
         </p>
     </div>
