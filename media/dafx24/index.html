@@ -3,7 +3,7 @@
 
 <!-- TODO: possibly move any web resources (e.g. Shoelace) to local copy in case we don't have internet access there. -->
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         // Setup key controls help dialog.
         const openButton = document.querySelector('#btnControls');
         const closeButton = document.querySelector('#btnControlsClose');
@@ -13,7 +13,7 @@
 
         // Setup for references dialog
         document.querySelector('#btnRefs').addEventListener('click', () => document.querySelector('.help_refs').show());
-        document.querySelector('#btnrefsClose').addEventListener('click', () => document.querySelector('.help_refs').hide());   
+        document.querySelector('#btnrefsClose').addEventListener('click', () => document.querySelector('.help_refs').hide());
 
         // Replace .ipsum-class elements with dummy content onload until we generate real poster text.
         var ipsumTags = document.querySelectorAll(".ipsum");
@@ -30,12 +30,13 @@
         hljs.highlightAll();
     });
 
-    document.addEventListener("keydown", function(event) {
+    document.addEventListener("keydown", function (event) {
         if (event.key === "?") {
             // TODO
         }
     });
 </script>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,26 +50,29 @@
         onload="document.documentElement.classList.add('sl-theme-dark');" />
     <script type="module"
         src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/shoelace-autoloader.js"></script>
-    
+
     <!-- Import highlight.js for code highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/dark.min.css">-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> -->
 
     <!-- Onto our CSS -->
     <style>
-        html, body {
-            height:100%;
+        html,
+        body {
+            height: 100%;
             margin: 0;
             padding: 0;
         }
-        
+
         body {
             font-family: Helvetica, Arial, sans-serif;
             font-size: 1.1em;
+            line-height: 1.25;
             background-color: #111;
-            color: #d4d4d4;    
+            color: #d4d4d4;
             /* fully-justify */
             text-align: justify;
             text-justify: inter-word;
@@ -91,42 +95,60 @@
         }
 
         .floating-logo {
-            position: fixed;
-            top: 10px;
-            right: 10px;
+            position: absolute;
+            right: 0;
+            margin-left: 0;
+            margin-top: 0;
+            float: right;
             width: 200px;
             height: auto;
             z-index: 100;
         }
 
         .top-bar {
-            padding: 10px;
             text-align: center;
         }
 
         #container {
             display: flex;
             flex-direction: column;
+
+            /* To match screen at DAFx */
+            aspect-ratio: 16 / 9;
+            width: auto;
             height: 100%;
         }
 
         .content {
-            flex: 1; 
+            flex: 1;
             display: flex;
             justify-content: space-between;
-            padding: 40px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        div.prose {
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         .column {
             flex-basis: 50%;
         }
-        .column { margin-right: 50px; }
-        .column + .column { margin-left: 50px; }
+
+        .column {
+            margin-right: 25px;
+        }
+
+        .column+.column {
+            margin-left: 25px;
+        }
 
         .bottom-bar {
             padding: 10px;
             text-align: center;
         }
+
         #qr-code-container {
             position: absolute;
             bottom: 0;
@@ -140,45 +162,55 @@
 </head>
 
 <body>
-<div id="container">
-    <div class="top-bar">
-        <h1>GPGPU Audio Benchmark Framework</h1>
-    </div>
-
-    <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
-    <div class="content">
-        <div class="column">
-            <h2>Abstract</h2>
-            <div>Acceleration of audio workloads on generally-programmable GPU (GPGPU) hardware offers potentially high speedup factors, but also presents challenges in terms of development and deployment. We can increasingly depend on such hardware being available in users' systems, yet few real-time audio products use this resource.</div>
-            <div>We propose a suite of benchmarks to qualify a GPU as suitable for batch or real-time audio processing. This includes both microbenchmarks and higher-level audio domain benchmarks. We choose metrics based on application, paying particularly close attention to latency tail distribution. We propose an extension to the benchmark framework to more accurately simulate the real-world request pattern and performance requirements when running in a digital audio workstation. We run these benchmarks on two common consumer-level platforms: a PC desktop with a recent mid-range discrete GPU and a Macintosh desktop with unified CPU-GPU memory architecture.</div>
-            <h2>Overview and Goals</h2>
-                <div class="ipsum"></div>
-            <h2>Implementation</h2>
-            <div>
-                <div class="ipsum"></div>
-                <div class="ipsum"></div>
-                <div class="ipsum"></div>
-            </div>
+    <div id="container">
+        <div class="top-bar">
+            <h1>GPGPU Audio Benchmark Framework</h1>
+            <h4><i>Travis Skare, travissk@stanford.edu</i></h4>
         </div>
 
+        <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
+        <div class="content">
+            <div class="column">
+                <h2>Abstract</h2>
+                <div class="prose">Acceleration of audio workloads on generally-programmable GPU (GPGPU) hardware offers
+                    potentially high speedup factors, but also presents challenges in terms of development and
+                    deployment. We can increasingly depend on such hardware being available in users' systems, yet few
+                    real-time audio products use this resource.</div>
+                <div class="prose">We propose a suite of benchmarks to qualify a GPU as suitable for batch or real-time
+                    audio processing. This includes both microbenchmarks and higher-level audio domain benchmarks. We
+                    choose metrics based on application, paying particularly close attention to latency tail
+                    distribution. We propose an extension to the benchmark framework to more accurately simulate the
+                    real-world request pattern and performance requirements when running in a digital audio workstation.
+                    We run these benchmarks on two common consumer-level platforms: a PC desktop with a recent mid-range
+                    discrete GPU and a Macintosh desktop with unified CPU-GPU memory architecture.</div>
+                <h2>Overview and Goals</h2>
+                <div class="ipsum"></div>
+                <h2>Implementation</h2>
+                <div>
+                    <div class="ipsum"></div>
+                    <div class="ipsum"></div>
+                    <div class="ipsum"></div>
+                </div>
+            </div>
 
-        <div class="column">
-            <h2>Results</h2>
-            Choose a benchmark:
-            <sl-tab-group>
-                <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
-                <sl-tab slot="nav" panel="bench_modal">Modal</sl-tab>
-                <sl-tab slot="nav" panel="bench_conv1d">Conv1D</sl-tab>
-                <sl-tab slot="nav" panel="bench_conv2d" disabled>Conv2D</sl-tab>
 
-                <sl-tab-panel name="bench_io">
-                    <h3>This is the bench_io tab panel.</h3>
-                    <sl-card class="card-header">
-                        <div slot="header">
-                          Code
-                          <sl-icon-button name="gear" label="Settings"></sl-icon-button>
-                        </div>
-<pre>
+            <div class="column">
+                <h2>Results</h2>
+                Choose a benchmark:
+                <sl-tab-group>
+                    <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
+                    <sl-tab slot="nav" panel="bench_modal">Modal</sl-tab>
+                    <sl-tab slot="nav" panel="bench_conv1d">Conv1D</sl-tab>
+                    <sl-tab slot="nav" panel="bench_conv2d" disabled>Conv2D</sl-tab>
+
+                    <sl-tab-panel name="bench_io">
+                        <h3>This is the bench_io tab panel.</h3>
+                        <sl-card class="card-header">
+                            <div slot="header">
+                                Code
+                                <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+                            </div>
+                            <pre>
 <code class="language-cpp">#include &lt;hey.h&gt;
 #include "stdio.h"
 
@@ -188,64 +220,73 @@ int main() {
 }
 
 </code></pre>
-                    </sl-card>
-                    <sl-card class="card-header">
-                        <div slot="header">
-                          Results
-                          <sl-icon-button name="gear" label="Settings"></sl-icon-button>
-                        </div>
-                        <div class="ipsum"></div>
-                    </sl-card>
-                </sl-tab-panel>
-                <sl-tab-panel name="bench_modal">This is the bench_modal tab panel.</sl-tab-panel>
-                <sl-tab-panel name="bench_conv1d">This is the bench_conv1d tab panel.</sl-tab-panel>
-                <sl-tab-panel name="bench_conv2d">This is a disabled/bench_conv2d tab panel.</sl-tab-panel>
-            </sl-tab-group>
-        </div>
-    </div>
-
-    <sl-dialog class="help_keycombos">
-        <h3>Keyboard Controls</h3>
-        <ul>
-            <li><kbd>?</kbd> - Show this dialog</li>
-        </ul>
-        <sl-button id="btnControlsClose" slot="footer" variant="primary">Close</sl-button>
-    </sl-dialog>
-
-    <sl-dialog class="help_refs">
-        <h3>References - Poster</h3>
-        <ul>
-            <li>Background image and DAFx logo provided by DAFx 27 conference organizers</li>
-            <li><a href="https://shoelace.style/" target="_blank">Shoelace</a> used for styling and buttons/cards components</li>
-            <li><a href="https://highlightjs.org/" target="_blank">highlight.js</a> used for syntax highlighting</li>
-        </ul>
-        <sl-button id="btnrefsClose" slot="footer" variant="primary">Close</sl-button>
-        <h3>References - Paper</h3>
-        <ul>
-            <li>Placeholder</li>
-            <li>Placeholder</li>
-            <li>Placeholder</li>
-        </ul>
-    </sl-dialog>
-
-    <div class="bottom-bar">
-        <p>
-            <sl-button id="btnPaper">Paper</sl-button>
-            <sl-button id="btnRefs">References</sl-button>
-            <sl-button id="btnControls">Controls</sl-button>
-            <div id="qr-code-container">
-            <sl-qr-code
-                value="https://github.com/tskare/gpuaudiobench"
-                label="GitHub repo"
-                size="100"
-                background="#CCC"></sl-qr-code>
+                        </sl-card>
+                        <sl-card class="card-header">
+                            <div slot="header">
+                                Results
+                                <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+                            </div>
+                            <div class="ipsum"></div>
+                        </sl-card>
+                    </sl-tab-panel>
+                    <sl-tab-panel name="bench_modal">This is the bench_modal tab panel.</sl-tab-panel>
+                    <sl-tab-panel name="bench_conv1d">This is the bench_conv1d tab panel.</sl-tab-panel>
+                    <sl-tab-panel name="bench_conv2d">This is a disabled/bench_conv2d tab panel.</sl-tab-panel>
+                </sl-tab-group>
+            </div>
+            <!-- Third column, observations and conclusions -->
+            <div class="column">
+                <h2>Observations</h2>
+                <div class="prose ipsum"></div>
+                <div class="prose ipsum"></div>
+                <h2>Conclusions</h2>
+                <div class="prose"></div>
             </div>
 
-        </p>
-        </p>
-    </div>
-</div> <!-- #container -->
+        </div>
+
+
+
+        <sl-dialog class="help_keycombos">
+            <h3>Keyboard Controls</h3>
+            <ul>
+                <li><kbd>?</kbd> - Show this dialog</li>
+            </ul>
+            <sl-button id="btnControlsClose" slot="footer" variant="primary">Close</sl-button>
+        </sl-dialog>
+
+        <sl-dialog class="help_refs">
+            <h3>References - Poster</h3>
+            <ul>
+                <li>Background image and DAFx logo provided by DAFx 27 conference organizers</li>
+                <li><a href="https://shoelace.style/" target="_blank">Shoelace</a> used for styling and buttons/cards
+                    components</li>
+                <li><a href="https://highlightjs.org/" target="_blank">highlight.js</a> used for syntax highlighting
+                </li>
+            </ul>
+            <sl-button id="btnrefsClose" slot="footer" variant="primary">Close</sl-button>
+            <h3>References - Paper</h3>
+            <ul>
+                <li>Placeholder</li>
+                <li>Placeholder</li>
+                <li>Placeholder</li>
+            </ul>
+        </sl-dialog>
+
+        <div class="bottom-bar">
+            <p>
+                <sl-button id="btnPaper">Paper</sl-button>
+                <sl-button id="btnRefs">References</sl-button>
+                <sl-button id="btnControls">Controls</sl-button>
+            <div id="qr-code-container">
+                <sl-qr-code value="https://github.com/tskare/gpuaudiobench" label="GitHub repo" size="100"
+                    background="#CCC"></sl-qr-code>
+            </div>
+
+            </p>
+            </p>
+        </div>
+    </div> <!-- #container -->
 </body>
 
 </html>
-
