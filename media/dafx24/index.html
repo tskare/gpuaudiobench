@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<!-- TODO: possibly move any web resources (e.g. Shoelace) to local copy in case we don't have internet access there. -->
+<!-- 
+    Poster for DAFx-27, 2024. 
+    Requires internet access or cached Shoelace.js and highlight.js.
+-->
 <script>
     var rootElem = document.querySelector(':root');
     document.addEventListener("DOMContentLoaded", function () {
@@ -51,26 +54,24 @@
             const activeTab = tabGroup.querySelector('sl-tab[active]');
             const activeIndex = Array.from(tabs).indexOf(activeTab);
             let nextIndex = (activeIndex + dTab);
-            // Hack to fix mod in both directions.
             if (dTab > 0)
                 nextIndex = nextIndex % tabs.length;
             else if (dTab < 0 && nextIndex < 0)
                 nextIndex = tabs.length - 1;
             tabs[nextIndex].click();
-            // console.log("Switching to tab", nextIndex);
         }
     }
 
     document.addEventListener("keydown", function (event) {
+        // Show the help dialog
         if (event.key === "?") {
-            // Show the help dialog
             document.querySelector('.help_keycombos').show();
         }
-        // If hitting a, toggle autocycle
+        // pressing a toggles autocycle
         else if (event.key === "a") {
             document.querySelector('#autocycle').checked = !document.querySelector('#autocycle').checked;
         }
-        // j/k move tabs.
+        // j/k can be used to change tabs.
         else if (event.key === "j") {
             tabDelta(1);
         }
@@ -152,7 +153,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('DAFx24Background-16-9.png');
+            background-image: url('static/DAFx24Background-16-9.png');
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
@@ -275,7 +276,7 @@
             right: calc(var(--overscan-for-dafx) + 0px);
             z-index: 100;
             display: inline-block;
-            padding: 6px;
+            padding: 8px 8px 4px;
             background-color: #ccc;
         }
     </style>
@@ -288,8 +289,8 @@
             <h4 id="authorline"><i>Travis Skare, travissk@stanford.edu</i></h4>
         </div>
 
-        <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
-        <img src="slogo.png" alt="Stanford Logo" class="floating-logo2">
+        <img src="static/DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
+        <img src="static/slogo.png" alt="Stanford Logo" class="floating-logo2">
 
         <div class="content">
             <div id="col1" class="column">
@@ -537,7 +538,7 @@ kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
                 <h2>
                     <sl-icon style="padding-top:-20px;" name="exclamation-triangle"></sl-icon> Caveats</h2>
                 <ul>
-                    <li>The code is not "DAW-Ready" and abstracts "in vivo" threading issues and host scheduling. This may be significant.</li>
+                    <li>The code is not "DAW-Ready" and abstracts "in vivo" threading issues and host scheduling behavior.</li>
                     <li>Thus, these tests are necessary but not sufficient for real-world qualification.</li>
                     <li>Code has been, and is being, transformed to be more readable. The <pre style="display:inline">v1.0</pre> tag has a prior version, and tip of tree will soon have a revised benchmark class definition.</li>
                 </ul>
@@ -548,7 +549,7 @@ kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
                     <li>DAW simulation extension has a measurable effect and suggests impact of scheduler.</li>
                     <li>Future work: call this code across processes, or run it in-proc, from real VST/AU plugins.</li>
                     <li>Future work: run these in an environment with measured contention from other GPGPU tasks</li>
-                    <li>One-line summary: system benchmarks such as these can give insight into a platform when starting out. Next implement, then finally tune with vendor performance tools.</li>
+                    <li>One-line summary: system benchmarks such as these can give insight into a platform when starting out. Then, a product can be implemented and tuned with vendor performance tools.</li>
                 </ul>
             </div>
         </div>
