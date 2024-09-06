@@ -4,13 +4,13 @@
 
 Please feel free to mail with any questions, and if you're at the conference, possibly see you at Friday afternoon's session.
 
-Please check back later this week when I'll have a v1.5 available that contains:
+Please check back later this week (update: this may slip, apologies!) when I'll have a v1.5 available that contains:
 
 + code with better names and more comments, for display on the virtual poster.
-+ facility for running multiple benchmarks or all of them, for a smoother demo.
++ Facility for specifying multiple benchmarks, for a smoother demo (you may currently rerun the executable without recompiling to accomplish this).
 + additional client-side validations that were omitted in this repo.
-+ fixes made for the revised version that were omitted in this repo.
-+ additional benchmark
++ fixes made for the development/paper version that need to be merged to this repo.
++ an additional benchmark
 
 You'll always be able to access the earlier version with the `v1.0` tag.
 
