@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- TODO: possibly move any web resources (e.g. Shoelace) to local copy in case we don't have internet access there. -->
+<script>
+    var rootElem = document.querySelector(':root');
+    document.addEventListener("DOMContentLoaded", function () {
+        // Setup key controls help dialog.
+        const openButton = document.querySelector('#btnControls');
+        const closeButton = document.querySelector('#btnControlsClose');
+        const dialog = document.querySelector('.help_keycombos');
+        openButton.addEventListener('click', () => dialog.show());
+        closeButton.addEventListener('click', () => dialog.hide());
+
+        // Setup for references dialog
+        document.querySelector('#btnRefs').addEventListener('click', () => document.querySelector('.help_refs').show());
+        document.querySelector('#btnrefsClose').addEventListener('click', () => document.querySelector('.help_refs').hide());
+
+        // Replace .ipsum-class elements with dummy content onload until we generate real poster text.
+        var ipsumTags = document.querySelectorAll(".ipsum");
+        for (var i = 0; i < ipsumTags.length; i++) {
+            ipsumTags[i].innerHTML = `
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore 
+                et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
+                aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum 
+                dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
+                officia deserunt mollit anim id est laborum.`
+        }
+
+        // Syntax highlighting
+        hljs.highlightAll();
+
+        // Start timer to select the next tab in the group, if auto-cycle is enabled.
+        window.setInterval(() => {
+            if (!document.querySelector('#autocycle').checked) {
+                return;
+            }
+            const tabGroup = document.querySelector('sl-tab-group');
+            if (tabGroup) {
+                tabDelta(1);
+                // console.log("Switching to tab", nextIndex);
+            }
+       //}, 60*1000);  // 1 minute
+       }, 500);  // 0.5s, to debug.
+    });
+
+    function tabDelta(dTab) {
+        const tabGroup = document.querySelector('sl-tab-group');
+        if (tabGroup) {
+            const tabs = tabGroup.querySelectorAll('sl-tab');
+            const activeTab = tabGroup.querySelector('sl-tab[active]');
+            const activeIndex = Array.from(tabs).indexOf(activeTab);
+            let nextIndex = (activeIndex + dTab);
+            // Hack to fix mod in both directions.
+            if (dTab > 0)
+                nextIndex = nextIndex % tabs.length;
+            else if (dTab < 0 && nextIndex < 0)
+                nextIndex = tabs.length - 1;
+            tabs[nextIndex].click();
+            // console.log("Switching to tab", nextIndex);
+        }
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "?") {
+            // Show the help dialog
+            document.querySelector('.help_keycombos').show();
+        }
+        // If hitting a, toggle autocycle
+        else if (event.key === "a") {
+            document.querySelector('#autocycle').checked = !document.querySelector('#autocycle').checked;
+        }
+        // j/k move tabs.
+        else if (event.key === "j") {
+            tabDelta(1);
+        }
+        else if (event.key === "k") {
+            tabDelta(-1);
+        }
+        else if (event.key === "r") {
+            document.querySelector('.help_refs').show();
+        }
+    });
+</script>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPGPU Audio Benchmark Framework</title>
+
+    <!-- Import Shoelace via CDN for buttons and styling -->
+    <link rel="stylesheet" media="(prefers-color-scheme:light)"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css" />
+    <link rel="stylesheet" media="(prefers-color-scheme:dark)"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/dark.css"
+        onload="document.documentElement.classList.add('sl-theme-dark');" />
+    <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/shoelace-autoloader.js"></script>
+
+    <!-- Import highlight.js for code highlighting -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/dark.min.css">-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> -->
+
+    <!-- Onto our CSS -->
+    <style>
+        /* Adjustable parameters */
+        :root {
+            /* Adjust this to avoid cutting off left/right on DAFx screen */
+            --overscan-for-dafx: 30px;
+            --overscan-for-dafx-vertical: 0px;
+
+            --column-gap: 30px;
+        }
+        html,
+        body {
+            height: 100%;
+            padding-left: var(--overscan-for-dafx);
+            padding-right: var(--overscan-for-dafx);
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 1.1em;
+            line-height: 1.25;
+            background-color: #111;
+            color: #d0d0d0;
+            /* fully-justify */
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        /* Background image provided by DAFx conference. */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('DAFx24Background-16-9.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .floating-logo {
+            position: absolute;
+            top: var(--overscan-for-dafx-vertical);
+            right: calc(var(--overscan-for-dafx) + 250px);
+            margin-left: 0;
+            margin-top: 0;
+            float: right;
+            width: 240px;
+            height: auto;
+            z-index: 100;
+        }
+        .floating-logo2 {
+            position: absolute;
+            top: var(--overscan-for-dafx-vertical);
+            right: calc(var(--overscan-for-dafx) + 125px);
+            margin-left: 0;
+            margin-top: 0;
+            float: right;
+            width: 112px;
+            height: auto;
+            z-index: 100;
+        }
+
+
+        .top-bar {
+            /* text-align: center; */
+            text-align: left;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            /* To match screen at DAFx */
+            aspect-ratio-off: 16 / 9;
+            width: 100%;
+            height: 100%;
+
+        }
+
+        .fig {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 75%;
+        }
+
+        .content {
+            display: flex;
+            gap: var(--column-gap);
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        div.prose {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .spacerSmall {
+            margin-left:6px;
+            margin-right:6px;
+            display: inline-block;
+        }
+
+        .column {
+            /* flex-basis: 33%; */
+            /* flex: 0 0 33%; */
+            /* width:33%; */
+            /* flex: 1; */
+        }
+
+        /*
+        .column {
+            padding-right: 25px;
+        }
+
+        .column+.column {
+            padding-left: 25px;
+        }
+        */
+        #col1 {
+            flex: 1 1 0px;
+            padding-left: 0px;
+        }
+        #col2 {
+            flex: 1 1 0px;
+        }
+        #col3 {
+            flex: 1 1 0px;
+            padding-right: 0px;
+        }
+        #titleline {
+            margin-bottom: 0;
+        }
+        #authorline {
+            margin-top: 0;
+        }
+
+
+        .bottom-bar {
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        .inlinepre {
+            display: inline;
+        }
+
+        #qr-code-container {
+            position: absolute;
+            top: var(--overscan-for-dafx-vertical);
+            right: calc(var(--overscan-for-dafx) + 0px);
+            z-index: 100;
+            display: inline-block;
+            padding: 6px;
+            background-color: #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div class="top-bar">
+            <h1 id="titleline">General-Purpose GPU Audio Benchmark Framework</h1>
+            <h4 id="authorline"><i>Travis Skare, travissk@stanford.edu</i></h4>
+        </div>
+
+        <img src="DAFx24LogoBannerFlatTransparent.png" alt="DAFx-27 2024 Logo" class="floating-logo">
+        <img src="slogo.png" alt="Stanford Logo" class="floating-logo2">
+
+        <div class="content">
+            <div id="col1" class="column">
+                <h2>Overview</h2>
+                <div class="prose">
+                    Acceleration of real-time audio workloads on generally-programmable GPU (GPGPU) hardware offers
+                    potentially high speedup factors in theory, but presents challenges in practice:
+                    <ul>
+                        <li>Latency requirements are strict; consumer GPUs and drivers are far from hard-realtime</li>
+                        <li>CPUs and system I/O have improved substantially in parallel</li>
+                        <li>Users have heterogeneous setups; contention more of a concern</li>
+                    </ul>
+                </div>
+
+                <div class="prose">We propose a suite of microbenchmarks and domain-specific benchmarks
+                    to determine if a given task can run reliably at audio rates on various systems. 
+                    </div>
+                <div class="prose">
+                    We may also measure strengths and weaknesses of different platforms.
+                </div>
+                    
+                <div class="prose">
+                    <ul>
+                    <li>Can this system process audio on the GPU at real-time rates?</li>
+                    <li>What is the overhead? What are the bounds on buffer size and sample rate?</li>
+                    <li>How many tracks can be processed in real-time? What are the data transfer limits?</li>
+                    <li>Does this platform excel at or struggle with certain subtasks?</li>
+                    </ul>
+                </div>
+                <div class="prose">
+                    To answer such questions, we propose a collection of microbenchmarks and domain-specific benchmarks.
+                    We may compare and contrast platforms.
+                </div>
+
+                <h3>Test Systems</h3>
+                <div>
+                    <div class="prose">Benchmarks were written on NVIDA/CUDA and Apple/Metal platforms. The MacOS consumer and professional platorms both utilize a shared memory architecture we are interested in exploring for random memory accesses.</div>
+                    <img class="fig" style="width:350px" src="figs/fig3.png" alt="Platforms" />
+                    <img class="fig" style="width:350px" src="figs/tab2.png" alt="Platforms Table" />
+                    <h4>Metrics</h4>
+                    <div class="prose">
+                        We measure two core metrics: latency and throughput.
+                    </div>
+                    <div class="prose"><b>Latency</b> is the wall-clock time in milliseconds to process an incoming buffer of audio or control input. This is the more critical metric; missing even one deadline can ruin a take. In cases of excessive latency metrics, developers may add pipelining or leverage the DAW's latency compensation. Batch processing tasks are less sensitive to latency. We may say an audio processing task "meets the latency bar" if it is able to complete within the time allowed for its audio callback. This is defined as the audio buffer size divided by the sampling rate, minus some time for overhead.
+                    </div>
+                    <div class="prose">
+                        <b>Throughput</b> measures how much data a system can process over time, for example one may compute 500 Megabytes of data per second for some task A and 3 GB per second for some task B. This may bound number of tracks and sample rate. This may be used to compute the overall speedup factor over a CPU process.
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="col2" class="column">
+                <h2>Implementation and Results</h2>
+                <sl-tab-group>
+                    <sl-tab slot="nav" panel="result_format">Result Format</sl-tab>
+                    <sl-tab slot="nav" panel="bench_kernellaunch">Kernel Launch</sl-tab>
+                    <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
+                    <sl-tab slot="nav" panel="bench_rndmem">RndMem</sl-tab>
+                    <sl-tab slot="nav" panel="bench_modal">Modal Filters</sl-tab>
+                    <sl-tab slot="nav" panel="bench_conv1d">Conv1D</sl-tab>
+                    <sl-tab-panel name="bench_io">
+                        <h4>I/O Transfer Overhead for Varying Data Mixes</h4>
+                        <div class="prose">Anecdotally, I/O transfer time has been the top question when discussing performing tasks at audio rates.</div>
+                        <div class="prose">We measure the time to read and write data to and from the GPU. We vary the mix of reads and writes to see how the platform handles different mixes of I/O operations.</div>
+<sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+                        <pre><code class="language-cpp">// Kernel code is empty (CUDA) or performs a single trivial
+// operation (Metal).
+// We then measure the overhead involved in invoking a GPU function repeatedly.</code></pre>   
+</sl-card>
+<h4>Performance</h4>
+                        <img class="fig" style="width:100%" src="figs/tab5.png" alt="I/O" />
+                    </sl-tab-panel>
+                    <sl-tab-panel name="bench_rndmem">
+                        <h4>RndMem "graintable" memory access</h4>
+                        <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+                            <!-- <div slot="header">
+                                Code
+                                <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+                            </div> -->
+                            <pre>
+<code class="language-cpp">
+// Simulated quasi-granular synthesis kernel.
+// N virtual playheads read from areas of memory.
+// This is intended to exerise some of the "unfortunate" cases:
+//   - random memory access
+//   - unalgned memory access between threads within a warp
+//   - non-coalesced memory access between threads in a warp
+// For simplicity we do not wrap around the end of the buffer inside 
+//   the kernels here. We may wish to change this as it would disrupt
+//   caching behavior a bit further; there
+//   would be a point where a new cache line would be loaded.
+__global__ void RndMemKernel(const float* sampleMem,
+        const int* playheads, float* outBuf) {
+    int trackidx = blockDim.x * blockIdx.x + threadIdx.x;
+    int playhead = playheads[trackidx];
+    for (int i = 0; i < BUFSIZE; i++) {
+        // This benchmark is stressing random reads and writes from
+        // global memory. Note the calling (host/CPU) code should
+        // place these in varying locations across sample memory,
+        // and likely unaligned, different loop lengths, etc.
+        
+        // Write is aligned and free of bank conflicts.
+        outBuf[NTRACKS*i + trackidx] = sampleMem[playhead] + i;
+    }
+}
+
+</code></pre>
+                        </sl-card>
+                        <img class="fig" style="display:inline-block;width:48%" src="figs/fig5.png" alt="Graintable" />
+                        <img class="fig" style="display:inline-block;width:48%; vertical-align:top;" src="figs/tab6.png" alt="Graintable" />
+                        <div class="prose">
+                            This benchmark exhibits a number of undesirable memory access patterns.
+                        </div>
+                        <div class="prose">
+                            The MacOS/Metal platform excels here, in terms of performance per watt.
+                        </div>
+                    </sl-tab-panel>
+                    <sl-tab-panel name="result_format">
+                        <h4>Configuration 
+<sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+<pre>
+<code>Usage: ./GPUAudioBench --buffersize 512 --benchmark datacopy2080
+        --fs 48000 --ntracks 128 
+Supported benchmarks:  [...omitted...]
+Optional flags:
+    --dawsim: Simulate DAW-like behavior
+    --dawsim_delay: Simulated buffer interarrival time in milliseconds
+    --skip-human-readable-summary: Disable human-readable summary
+    --nruns: Number of runs
+    --help: Print this help message
+    --outputfile: Output file for stats
+</code></pre></sl-card>
+                        <h4>Output</h4>
+                        <div class="prose">Sample output from a run of a Conv1D benchmark which did <i>not</i> pass follows. Warnings will be given if (median || p95 || maximum) latency caused a virtual underrun.</div>
+                        <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+                        <pre><code class="language-plaintext">Buffer Size: 512
+Benchmark: Conv1D
+FS: 48000
+Number of Tracks: 256
+Outer Runtime: 1118.35 ms
+Max latency of 100 runs: 29.833042 ms
+Success writing output stats to /tmp/gpubench_Conv1D_512_256.txt
+p50: 10.897
+p95: 11.551
+max: 29.83304
+WARNING: median latency 10.897 ms over 10.667 ms callback time limit.
+</code></pre></sl-card>
+<div class="prose">Whereas a successful run will report:</div>
+
+<sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+<pre>
+<code class="language-plaintext">OK: max latency 0.832 ms under 10.667 ms callback time limit.
+Please consider a margin of safety as well.
+</code></pre></sl-card>
+                    </sl-tab-panel>
+                    <sl-tab-panel name="bench_kernellaunch">
+                        <h4>Kernel Launch Times</h4>
+                        <pre><code class="language-cpp">// Kernel code is a no-op or performs a single trivial operation (Metal).
+// We are measuring kernel execution time.
+                        </code></pre>   
+                        <img class="fig" src="figs/fig4.png" alt="Kernel Launch Times" />
+                        <div class="prose">The CUDA platform has quicker repeated kernel launches versus Apple M-series Metal and (legacy) AMD Metal platforms. All are performant, however.</div>
+                    </sl-tab-panel>
+                    <sl-tab-panel name="bench_modal">
+                        <h4>Modal Synthesis via Phasor Filters</h4>
+                        <div class="prose">We synthesize N modes of a modal resonator, each with a different frequency and decay time. The modes are excited by a single impulse at the beginning of the simulation and are modulated to require recomputation of some coefficients each loop.</div>
+                        <div class="prose">Phasor filters are used, which are complex multiply-based; not as efficient as biquads but well-behaved and simple to modulate with direct state variables for frequency, amplitude, damping.</div>
+                        <sl-card class="card-header" style="width:100%;margin-bottom:10px;">
+                        <pre><code class="language-cpp">// The CUDA library provides all complex math we need aside from cexpf.
+__device__ __forceinline__ cuFloatComplex custom_cexpf(cuFloatComplex z) {
+    cuComplex res;
+    float t = expf(z.x);
+    sincosf(z.y, &res.y, &res.x);
+    res.x *= t;
+    res.y *= t;
+    return res;
+}</code></pre></sl-card>
+                        <h4>Performance</h4>
+                        
+                        <div class="prose">This benchmark exercises the FPUs (32-bit). We note the CUDA card scales further, as might be expected with significantly higher TDP.</div>
+                        <img class="fig" src="figs/tab4.png" alt="Modal Synthesis" />
+                        <h4>Optimization: Pre-mixing</h4>
+                        <div class="prose">Large N may saturate the PCIe bus on our discrete GPU platform. In v2 of the CUDA version of this benchmark, we tree-sum down inside each warp for a 32x reduction in output size (pre-mixed sets of modes). Please note the public repo needs to be updated with this modification.</div>
+                        <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+                        <pre><code class="language-cpp">// Pairwise sum reduction: 32 -> 16 -> ... -> 1
+for (int offset = 16; offset > 0; offset /= 2)
+    merge_output += __shfl_down_sync(0xffffffff, merge_output, offset);
+if (is_first_thread_in_warp) {
+    output[which_warp*BUFFERSIZE + samp] = merge_output;</code></pre>   
+                    </sl-card>
+
+                    </sl-tab-panel>
+                    <sl-tab-panel name="bench_conv1d">
+                        <h4>Parallel 1D Time-Series Convolutions</h4>
+                        <div class="prose">
+                            We perform a time-domain convolution with IRs of 1k+ points across many tracks. Real-world products might use a different approach, but we use this to measure the benefit of using specialized read-only memory where available (Texture caches, <pre class="inlinepre">const</pre> on Metal).
+                        </div>
+
+                        <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
+                            <pre><code class="language-cpp">// Conv1D runs many convolution or convolution-like operations in parallel.
+// It seeks to benchmark use of constant/texture memory vs. a standard
+// input buffer.
+//
+// This benchmark performs time-domain 1D convolution using a nested
+// loop, nTracks parallel threads of O(buffer size * IR length).
+// Input and output are interleaved so memory accesses are aligned.
+//
+// On the MacOS Metal platform, please see section 4.2 of v3.1 of Apple's
+// Metal Shading Language specification for more details.
+// https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf
+// We may enable or disable use of constant memory easily on this platform,
+// by changing the bufIRs 'constant' specifier below to 'device'
+kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
+                            device const float* bufIn,
+                            device const float* bufIRs,  // use constant memory
+                            device float* bufOut,
+                            uint index [[thread_position_in_grid]]) {
+    // Aliased to reduce diff for when we pass this in as an argument,
+    // to support runtime parameter adjustment vs. requiring a recompile.
+    // Compiler should optimize this.
+    const int bufSize = BUFSIZE;
+    const int IRLENGTH = 256;
+    for (int i = 0; i < bufSize; i++) {
+        float outSamp = 0.0f;
+        for (int j = 0; j < IRLENGTH; j++) {
+            int t = i-j;
+            if (t >= 0 & t < IRLENGTH) {
+                outSamp += bufIn[t] * bufIRs[(*numTracks)*j + index];
+            }
+        }
+        bufOut[(*numTracks)*i + index] = outSamp;
+    }
+}</code></pre></sl-card>
+                            <div class="prose">
+                                No significant performance gain with 128 threads, IR length 1024 when marking data constant. On the CUDA platform data was always cached by the driver as it fit in thread-local memory.
+                            </div>
+                    </sl-tab-panel>
+                </sl-tab-group>
+            </div>
+            <!-- Third column, DAW-Sim and conclusions -->
+            <div id="col3" class="column">
+                <h2>DAW Simulation Mode</h2>
+                
+                <div class="prose">The DAW-Sim mode aims to shrink the gap between batch-like microbenchmarks and real-world conditions, simulating the request pattern seen by a real-time application or plugin.</div>
+                <img class="fig" src="figs/fig2.png" alt="DAW-Sim" />
+
+                <sl-details style="margin-top:20px" summary="Discussion: Spin vs Sleep">
+                    <div class="prose">We may choose whether to sleep or actively spin; both have analogs in the DAW world. Impact of this choice varies under different conditions:</div>
+                    <img class="fig" src="figs/tab7.png" alt="DAW-sim performance" />
+                </sl-details>
+
+                <div class="prose">DAW-Sim is seen to implementation across data transfer and synthesis tasks:</div>
+                <img class="fig" src="figs/tab8.png" alt="DAW-sim performance" />
+
+                <h2><sl-icon name="exclamation-triangle"></sl-icon> Caveats</h2>
+                <ul>
+                    <li>The code is not "DAW-Ready" and may abstract threading issues on each platform (potentially significant)</li>
+                    <li>Thus, these tests are necessary but not sufficient for real-world usage.</li>
+                    <li>Code has been, and is being, transformed to be more readable. The <pre style="display:inline">v1.0</pre> tag has a prior version, and tip of tree will soon have a revised benchmark class definition.</li>
+                </ul>
+                <h2>Observations</h2>
+                <ul>
+                    <li>CUDA (discrete) and Metal (shared-memory) platforms each have subtasks where they excel.</li>
+                    <li>Arithmetic throughput is attractive but latency variance is concerning for real-world applications.</li>
+                    <li>DAW simulation extension has a measurable effect and suggests impact of scheduler.</li>
+                    <li>Future work: run these in an environment with measured contention (other GPGPU tasks running)</li>
+                    <li>Future work: call this code across processes, or run it in-proc, from real VST/AU plugins.</li>
+                </ul>
+            </div>
+
+        </div>
+
+
+
+        <sl-dialog class="help_keycombos">
+            <h3>Keyboard Controls</h3>
+            <ul>
+                <li><kbd>?</kbd> - Show this dialog</li>
+                <li><kbd>a</kbd> - [A]utocycle toggle</li>
+                <li><kbd>j/k</kbd> - Prev/Next in impl/results section.</li>
+                <li><kbd>r</kbd> - [R]eferences</li>
+            </ul>
+            
+            <sl-button id="btnControlsClose" slot="footer" variant="primary">Close</sl-button>
+        </sl-dialog>
+
+        <sl-dialog style="--width: 800px;" class="help_refs">
+            <h3>References - Poster</h3>
+            <ul>
+                <li>Background image and DAFx logo provided by DAFx 27 conference organizers</li>
+                <li><a href="https://shoelace.style/" target="_blank">Shoelace</a> used for styling and buttons/cards
+                    components</li>
+                <li><a href="https://highlightjs.org/" target="_blank">highlight.js</a> used for syntax highlighting
+                </li>
+            </ul>
+            <sl-button id="btnrefsClose" slot="footer" variant="primary">Close</sl-button>
+            <h3>References - Poster</h3>
+            <sl-details summary="(click to expand a scollable area)">
+                <img src="figs/refs_image.png"/>
+            </sl-details>
+        </sl-dialog>
+
+        <div class="bottom-bar">
+            <div>
+                <sl-switch id="autocycle">Auto-Cycle</sl-switch>
+                <span class="spacerSmall"></span>
+                <sl-button id="btnControls">Controls</sl-button>
+                <span class="spacerSmall"></span>
+                <sl-button id="btnPaper" href="https://github.com/IoSR-Surrey/DAFx24-Proceedings/raw/main/papers/DAFx24_paper_56.pdf" target="_blank">Paper (PDF)</sl-button>
+                <span class="spacerSmall"></span>
+                <sl-button id="btnRefs">References</sl-button>
+            <div id="qr-code-container">
+                <sl-qr-code value="https://github.com/tskare/gpuaudiobench" label="GitHub repo" size="100"
+                    background="#CCC"></sl-qr-code>
+            </div>
+
+            </div>
+        </div>
+    </div> <!-- #container -->
+</body>
+
+</html>
