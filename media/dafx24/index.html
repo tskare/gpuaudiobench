@@ -40,8 +40,8 @@
                 tabDelta(1);
                 // console.log("Switching to tab", nextIndex);
             }
-       //}, 60*1000);  // 1 minute
-       }, 500);  // 0.5s, to debug.
+       }, 60*1000);  // 1 minute
+       // }, 500);  // 0.5s, to debug.
     });
 
     function tabDelta(dTab) {
@@ -79,6 +79,18 @@
         }
         else if (event.key === "r") {
             document.querySelector('.help_refs').show();
+        }
+    });
+
+    // Attach an onclick to an image which launches the image_zoomer dialog and sets the source image
+    document.addEventListener("click", function (event) {
+        // if the href does not start with fig or table, exit.
+        if (event.target.tagName === "IMG" && event.target.src.indexOf("figs/") === -1) {
+            return;
+        }
+        if (event.target.tagName === "IMG") {
+            document.querySelector('.image_zoomer img').src = event.target.src;
+            document.querySelector('.image_zoomer').show();
         }
     });
 </script>
@@ -283,48 +295,44 @@
             <div id="col1" class="column">
                 <h2>Overview</h2>
                 <div class="prose">
-                    Acceleration of real-time audio workloads on generally-programmable GPU (GPGPU) hardware offers
-                    potentially high speedup factors in theory, but presents challenges in practice:
+                    Running certain audio tasks on commodity GPUs promises high speedup factors in theory, but presents challenges in practice:
                     <ul>
-                        <li>Latency requirements are strict; consumer GPUs and drivers are far from hard-realtime</li>
-                        <li>CPUs and system I/O have improved substantially in parallel</li>
+                        <li>Latency requirements are strict</li>
                         <li>Users have heterogeneous setups; contention more of a concern</li>
+                        <li>CPUs and system I/O have improved substantially alongside GPUs</li>
                     </ul>
                 </div>
 
-                <div class="prose">We propose a suite of microbenchmarks and domain-specific benchmarks
-                    to determine if a given task can run reliably at audio rates on various systems. 
+                <div class="prose">We propose a suite of micro- and domain-specific benchmarks
+                    to determine if a given task can run reliably at audio rates on various systems.
+                    This also allows comparing strengths and weaknesses of different platforms.
                     </div>
                 <div class="prose">
-                    We may also measure strengths and weaknesses of different platforms.
-                </div>
-                    
-                <div class="prose">
+                    We would like our system to answer questions such as:
                     <ul>
                     <li>Can this system process audio on the GPU at real-time rates?</li>
                     <li>What is the overhead? What are the bounds on buffer size and sample rate?</li>
-                    <li>How many tracks can be processed in real-time? What are the data transfer limits?</li>
+                    <li>How many tracks can be processed for different input vs output sizes?</li>
                     <li>Does this platform excel at or struggle with certain subtasks?</li>
                     </ul>
-                </div>
-                <div class="prose">
-                    To answer such questions, we propose a collection of microbenchmarks and domain-specific benchmarks.
-                    We may compare and contrast platforms.
                 </div>
 
                 <h3>Test Systems</h3>
                 <div>
-                    <div class="prose">Benchmarks were written on NVIDA/CUDA and Apple/Metal platforms. The MacOS consumer and professional platorms both utilize a shared memory architecture we are interested in exploring for random memory accesses.</div>
-                    <img class="fig" style="width:350px" src="figs/fig3.png" alt="Platforms" />
-                    <img class="fig" style="width:350px" src="figs/tab2.png" alt="Platforms Table" />
+                    <div class="prose">Benchmarks were written on PC/CUDA and Apple/Metal platforms. The CUDA platform is a discrete consumer-level GPU. Modern MacOS platforms share memory between CPU and GPU which may benefit random memory accesses.</div>
+                    <img class="fig" style="width:80%" src="figs/fig3.png" alt="Platforms" />
+                    <img class="fig" style="width:80%" src="figs/tab2.png" alt="Platforms Table" />
                     <h4>Metrics</h4>
-                    <div class="prose">
-                        We measure two core metrics: latency and throughput.
+                    <div class="prose"><b>Latency,</b> our most critical metric, is the wall-clock time in milliseconds to process
+                        an incoming buffer of audio or control input. Missing even one deadline can ruin a take.
+                        In cases of slightly elevated latency, developers might add pipelining or leverage a
+                        DAW's latency compensation. Batch processing tasks are less sensitive to latency but still benefit from responsive user experience.
                     </div>
-                    <div class="prose"><b>Latency</b> is the wall-clock time in milliseconds to process an incoming buffer of audio or control input. This is the more critical metric; missing even one deadline can ruin a take. In cases of excessive latency metrics, developers may add pipelining or leverage the DAW's latency compensation. Batch processing tasks are less sensitive to latency. We may say an audio processing task "meets the latency bar" if it is able to complete within the time allowed for its audio callback. This is defined as the audio buffer size divided by the sampling rate, minus some time for overhead.
-                    </div>
                     <div class="prose">
-                        <b>Throughput</b> measures how much data a system can process over time, for example one may compute 500 Megabytes of data per second for some task A and 3 GB per second for some task B. This may bound number of tracks and sample rate. This may be used to compute the overall speedup factor over a CPU process.
+                        <b>Throughput</b> measures how much data a system can process over time, for
+                        example one may compute 500 Megabytes of data per second for some task A and
+                        20 Gigabytes per second for some task B. This may bound number of tracks and
+                        sample rate. This is sometimes reported as speedup vs CPU.
                     </div>
                 </div>
             </div>
@@ -361,15 +369,11 @@
                             <pre>
 <code class="language-cpp">
 // Simulated quasi-granular synthesis kernel.
-// N virtual playheads read from areas of memory.
+// N virtual playheads read from chunks of memory.
 // This is intended to exerise some of the "unfortunate" cases:
 //   - random memory access
-//   - unalgned memory access between threads within a warp
+//   - unaligned memory access between threads within a warp
 //   - non-coalesced memory access between threads in a warp
-// For simplicity we do not wrap around the end of the buffer inside 
-//   the kernels here. We may wish to change this as it would disrupt
-//   caching behavior a bit further; there
-//   would be a point where a new cache line would be loaded.
 __global__ void RndMemKernel(const float* sampleMem,
         const int* playheads, float* outBuf) {
     int trackidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -383,9 +387,7 @@ __global__ void RndMemKernel(const float* sampleMem,
         // Write is aligned and free of bank conflicts.
         outBuf[NTRACKS*i + trackidx] = sampleMem[playhead] + i;
     }
-}
-
-</code></pre>
+}</code></pre>
                         </sl-card>
                         <img class="fig" style="display:inline-block;width:48%" src="figs/fig5.png" alt="Graintable" />
                         <img class="fig" style="display:inline-block;width:48%; vertical-align:top;" src="figs/tab6.png" alt="Graintable" />
@@ -440,12 +442,12 @@ Please consider a margin of safety as well.
 // We are measuring kernel execution time.
                         </code></pre>   
                         <img class="fig" src="figs/fig4.png" alt="Kernel Launch Times" />
-                        <div class="prose">The CUDA platform has quicker repeated kernel launches versus Apple M-series Metal and (legacy) AMD Metal platforms. All are performant, however.</div>
+                        <div class="prose">The CUDA platform has quicker repeated kernel launches versus Apple M-series Metal and (legacy) AMD Metal platforms. All are performant for ~256 sample buffers.</div>
                     </sl-tab-panel>
                     <sl-tab-panel name="bench_modal">
                         <h4>Modal Synthesis via Phasor Filters</h4>
-                        <div class="prose">We synthesize N modes of a modal resonator, each with a different frequency and decay time. The modes are excited by a single impulse at the beginning of the simulation and are modulated to require recomputation of some coefficients each loop.</div>
-                        <div class="prose">Phasor filters are used, which are complex multiply-based; not as efficient as biquads but well-behaved and simple to modulate with direct state variables for frequency, amplitude, damping.</div>
+                        <div class="prose">We form a massively parallel filter bank of independent modes, each with a controllable frequency and decay time. The modes are excited by a single impulse at the beginning of the simulation and are modulated to require recomputation of some coefficients each loop.</div>
+                        <div class="prose">Phasor filters are used, which are complex multiply-based. While other implementations such as biquads require fewer cycles, these are well-behaved and intuitive to modulate and inspect.</div>
                         <sl-card class="card-header" style="width:100%;margin-bottom:10px;">
                         <pre><code class="language-cpp">// The CUDA library provides all complex math we need aside from cexpf.
 __device__ __forceinline__ cuFloatComplex custom_cexpf(cuFloatComplex z) {
@@ -456,11 +458,7 @@ __device__ __forceinline__ cuFloatComplex custom_cexpf(cuFloatComplex z) {
     res.y *= t;
     return res;
 }</code></pre></sl-card>
-                        <h4>Performance</h4>
-                        
-                        <div class="prose">This benchmark exercises the FPUs (32-bit). We note the CUDA card scales further, as might be expected with significantly higher TDP.</div>
-                        <img class="fig" src="figs/tab4.png" alt="Modal Synthesis" />
-                        <h4>Optimization: Pre-mixing</h4>
+                        <h4>Bottleneck Elimination: Pre-mixing</h4>
                         <div class="prose">Large N may saturate the PCIe bus on our discrete GPU platform. In v2 of the CUDA version of this benchmark, we tree-sum down inside each warp for a 32x reduction in output size (pre-mixed sets of modes). Please note the public repo needs to be updated with this modification.</div>
                         <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
                         <pre><code class="language-cpp">// Pairwise sum reduction: 32 -> 16 -> ... -> 1
@@ -469,6 +467,9 @@ for (int offset = 16; offset > 0; offset /= 2)
 if (is_first_thread_in_warp) {
     output[which_warp*BUFFERSIZE + samp] = merge_output;</code></pre>   
                     </sl-card>
+                    <h4>Performance</h4>
+                    <div class="prose">This benchmark heavily exercises the FPUs (32-bit). We note the CUDA card scales further, as might be expected with its significantly higher TDP.</div>
+                        <img class="fig" src="figs/tab4.png" alt="Modal Synthesis" />
 
                     </sl-tab-panel>
                     <sl-tab-panel name="bench_conv1d">
@@ -522,36 +523,39 @@ kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
             <div id="col3" class="column">
                 <h2>DAW Simulation Mode</h2>
                 
-                <div class="prose">The DAW-Sim mode aims to shrink the gap between batch-like microbenchmarks and real-world conditions, simulating the request pattern seen by a real-time application or plugin.</div>
-                <img class="fig" src="figs/fig2.png" alt="DAW-Sim" />
+                <div class="prose">"DAW-Sim" aims to reduce the gap between batch-like microbenchmarks and real-world conditions, simulating the request pattern seen by a real-time application or plugin.</div>
+                <div class="prose">We see an effect across our benchmarks on both platforms, and substantial (relative) effect for smaller kernels.</div>
+                <img class="fig" style="margin-bottom:15px;" src="figs/fig2.png" alt="DAW-Sim" />
+
+                <img class="fig" src="figs/tab8.png" alt="DAW-sim performance" />
 
                 <sl-details style="margin-top:20px" summary="Discussion: Spin vs Sleep">
                     <div class="prose">We may choose whether to sleep or actively spin; both have analogs in the DAW world. Impact of this choice varies under different conditions:</div>
                     <img class="fig" src="figs/tab7.png" alt="DAW-sim performance" />
                 </sl-details>
 
-                <div class="prose">DAW-Sim is seen to implementation across data transfer and synthesis tasks:</div>
-                <img class="fig" src="figs/tab8.png" alt="DAW-sim performance" />
-
-                <h2><sl-icon name="exclamation-triangle"></sl-icon> Caveats</h2>
+                <h2>
+                    <sl-icon style="padding-top:-20px;" name="exclamation-triangle"></sl-icon> Caveats</h2>
                 <ul>
-                    <li>The code is not "DAW-Ready" and may abstract threading issues on each platform (potentially significant)</li>
-                    <li>Thus, these tests are necessary but not sufficient for real-world usage.</li>
+                    <li>The code is not "DAW-Ready" and abstracts "in vivo" threading issues and host scheduling. This may be significant.</li>
+                    <li>Thus, these tests are necessary but not sufficient for real-world qualification.</li>
                     <li>Code has been, and is being, transformed to be more readable. The <pre style="display:inline">v1.0</pre> tag has a prior version, and tip of tree will soon have a revised benchmark class definition.</li>
                 </ul>
                 <h2>Observations</h2>
                 <ul>
-                    <li>CUDA (discrete) and Metal (shared-memory) platforms each have subtasks where they excel.</li>
+                    <li>CUDA and Metal platforms each had subtasks where they excel.</li>
                     <li>Arithmetic throughput is attractive but latency variance is concerning for real-world applications.</li>
                     <li>DAW simulation extension has a measurable effect and suggests impact of scheduler.</li>
-                    <li>Future work: run these in an environment with measured contention (other GPGPU tasks running)</li>
                     <li>Future work: call this code across processes, or run it in-proc, from real VST/AU plugins.</li>
+                    <li>Future work: run these in an environment with measured contention from other GPGPU tasks</li>
+                    <li>One-line summary: system benchmarks such as these can give insight into a platform when starting out. Next implement, then finally tune with vendor performance tools.</li>
                 </ul>
             </div>
-
         </div>
 
-
+        <sl-dialog style="--width: 50vw;" class="image_zoomer">
+            <img style="width:100%;height:auto;" id="imagetozoom" src="figs/fig1.png" alt="Fig 1" />
+        </sl-dialog>
 
         <sl-dialog class="help_keycombos">
             <h3>Keyboard Controls</h3>
