@@ -22,12 +22,7 @@
         // Replace .ipsum-class elements with dummy content onload until we generate real poster text.
         var ipsumTags = document.querySelectorAll(".ipsum");
         for (var i = 0; i < ipsumTags.length; i++) {
-            ipsumTags[i].innerHTML = `
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore 
-                et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
-                aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum 
-                dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
-                officia deserunt mollit anim id est laborum.`
+            ipsumTags[i].innerHTML = `(Lorem ipsum removed)`
         }
 
         // Syntax highlighting
@@ -84,8 +79,8 @@
     });
 
     // Attach an onclick to an image which launches the image_zoomer dialog and sets the source image
+    // CLEANUP: attach to individual elements vs watching for bubble to document.
     document.addEventListener("click", function (event) {
-        // if the href does not start with fig or table, exit.
         if (event.target.tagName === "IMG" && event.target.src.indexOf("figs/") === -1) {
             return;
         }
@@ -115,17 +110,20 @@
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/dark.min.css">-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> -->
 
-    <!-- Onto our CSS -->
     <style>
-        /* Adjustable parameters */
+        /* CSS Vars */
         :root {
+            /* Space between columns, adjust for readability on each display */
+            --column-gap: 30px;
+            
             /* Adjust this to avoid cutting off left/right on DAFx screen */
             --overscan-for-dafx: 30px;
             --overscan-for-dafx-vertical: 0px;
 
-            --column-gap: 30px;
+            /* Increase if logos fall outside display area */
+            --logos-right-offset: 15px;
+            --logos-top-offset: 15px;
         }
         html,
         body {
@@ -163,8 +161,8 @@
 
         .floating-logo {
             position: absolute;
-            top: var(--overscan-for-dafx-vertical);
-            right: calc(var(--overscan-for-dafx) + 250px);
+            top: calc(var(--overscan-for-dafx-vertical) + var(--logos-top-offset));
+            right: calc(var(--overscan-for-dafx) + var(--logos-right-offset) + 250px);
             margin-left: 0;
             margin-top: 0;
             float: right;
@@ -174,8 +172,8 @@
         }
         .floating-logo2 {
             position: absolute;
-            top: var(--overscan-for-dafx-vertical);
-            right: calc(var(--overscan-for-dafx) + 125px);
+            top: calc(var(--overscan-for-dafx-vertical) + var(--logos-top-offset));
+            right: calc(var(--overscan-for-dafx) + 125px + var(--logos-right-offset));
             margin-left: 0;
             margin-top: 0;
             float: right;
@@ -261,7 +259,7 @@
 
 
         .bottom-bar {
-            margin: 0;
+            margin: -25px;
             padding: 0;
             text-align: center;
         }
@@ -272,8 +270,8 @@
 
         #qr-code-container {
             position: absolute;
-            top: var(--overscan-for-dafx-vertical);
-            right: calc(var(--overscan-for-dafx) + 0px);
+            top: calc(var(--overscan-for-dafx-vertical) + var(--logos-top-offset));
+            right: calc(var(--overscan-for-dafx) + var(--logos-right-offset) + 0px);
             z-index: 100;
             display: inline-block;
             padding: 8px 8px 4px;
@@ -321,8 +319,8 @@
                 <h3>Test Systems</h3>
                 <div>
                     <div class="prose">Benchmarks were written on PC/CUDA and Apple/Metal platforms. The CUDA platform is a discrete consumer-level GPU. Modern MacOS platforms share memory between CPU and GPU which may benefit random memory accesses.</div>
-                    <img class="fig" style="width:80%" src="figs/fig3.png" alt="Platforms" />
-                    <img class="fig" style="width:80%" src="figs/tab2.png" alt="Platforms Table" />
+                    <img class="fig" style="width:95%" src="figs/fig3.png" alt="Platforms" />
+                    <img class="fig" style="width:95%" src="figs/tab2.png" alt="Platforms Table" />
                     <h4>Metrics</h4>
                     <div class="prose"><b>Latency,</b> our most critical metric, is the wall-clock time in milliseconds to process
                         an incoming buffer of audio or control input. Missing even one deadline can ruin a take.
@@ -342,20 +340,21 @@
             <div id="col2" class="column">
                 <h2>Implementation and Results</h2>
                 <sl-tab-group>
-                    <sl-tab slot="nav" panel="result_format">Result Format</sl-tab>
+                    <sl-tab slot="nav" panel="result_format">Usage</sl-tab>
                     <sl-tab slot="nav" panel="bench_kernellaunch">Kernel Launch</sl-tab>
                     <sl-tab slot="nav" panel="bench_io">I/O</sl-tab>
                     <sl-tab slot="nav" panel="bench_rndmem">RndMem</sl-tab>
                     <sl-tab slot="nav" panel="bench_modal">Modal Filters</sl-tab>
                     <sl-tab slot="nav" panel="bench_conv1d">Conv1D</sl-tab>
                     <sl-tab-panel name="bench_io">
-                        <h4>I/O Transfer Overhead for Varying Data Mixes</h4>
-                        <div class="prose">Anecdotally, I/O transfer time has been the top question when discussing performing tasks at audio rates.</div>
-                        <div class="prose">We measure the time to read and write data to and from the GPU. We vary the mix of reads and writes to see how the platform handles different mixes of I/O operations.</div>
+                        <h4>I/O Transfer Overhead for Varying Data Mixtures</h4>
+                        <div class="prose">Anecdotally, data transfer time has been the top concern when discussing performing tasks at audio rates.</div>
+                        <div class="prose">We measure the time to send data to and fetch data from the GPU. We vary the mix of reads and writes to see how the platform handles different mixes of I/O operations.</div>
 <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
                         <pre><code class="language-cpp">// Kernel code is empty (CUDA) or performs a single trivial
-// operation (Metal).
-// We then measure the overhead involved in invoking a GPU function repeatedly.</code></pre>   
+// operation per element (Metal).
+// We then measure the overhead involved in transferring
+// large buffers to/from the GPU.</code></pre>   
 </sl-card>
 <h4>Performance</h4>
                         <img class="fig" style="width:100%" src="figs/tab5.png" alt="I/O" />
@@ -371,7 +370,7 @@
 <code class="language-cpp">
 // Simulated quasi-granular synthesis kernel.
 // N virtual playheads read from chunks of memory.
-// This is intended to exerise some of the "unfortunate" cases:
+// This is intended to exercise some of the "unfortunate" cases:
 //   - random memory access
 //   - unaligned memory access between threads within a warp
 //   - non-coalesced memory access between threads in a warp
@@ -446,7 +445,7 @@ Please consider a margin of safety as well.
                         <div class="prose">The CUDA platform has quicker repeated kernel launches versus Apple M-series Metal and (legacy) AMD Metal platforms. All are performant for ~256 sample buffers.</div>
                     </sl-tab-panel>
                     <sl-tab-panel name="bench_modal">
-                        <h4>Modal Synthesis via Phasor Filters</h4>
+                        <!-- <h4>Modal Synthesis via Phasor Filters</h4> -->
                         <div class="prose">We form a massively parallel filter bank of independent modes, each with a controllable frequency and decay time. The modes are excited by a single impulse at the beginning of the simulation and are modulated to require recomputation of some coefficients each loop.</div>
                         <div class="prose">Phasor filters are used, which are complex multiply-based. While other implementations such as biquads require fewer cycles, these are well-behaved and intuitive to modulate and inspect.</div>
                         <sl-card class="card-header" style="width:100%;margin-bottom:10px;">
@@ -459,7 +458,7 @@ __device__ __forceinline__ cuFloatComplex custom_cexpf(cuFloatComplex z) {
     res.y *= t;
     return res;
 }</code></pre></sl-card>
-                        <h4>Bottleneck Elimination: Pre-mixing</h4>
+                        <!-- <h4>Bottleneck Elimination: Pre-mixing</h4> -->
                         <div class="prose">Large N may saturate the PCIe bus on our discrete GPU platform. In v2 of the CUDA version of this benchmark, we tree-sum down inside each warp for a 32x reduction in output size (pre-mixed sets of modes). Please note the public repo needs to be updated with this modification.</div>
                         <sl-card class="card-header" style="width:100%;margin-bottom:15px;">
                         <pre><code class="language-cpp">// Pairwise sum reduction: 32 -> 16 -> ... -> 1
@@ -515,7 +514,7 @@ kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
     }
 }</code></pre></sl-card>
                             <div class="prose">
-                                No significant performance gain with 128 threads, IR length 1024 when marking data constant. On the CUDA platform data was always cached by the driver as it fit in thread-local memory.
+                                No significant performance gain with 128 threads, IR length 1024 when marking data constant. On the CUDA platform data was automatically cached.
                             </div>
                     </sl-tab-panel>
                 </sl-tab-group>
@@ -580,7 +579,7 @@ kernel void BenchmarkConv1D(constant int* numTracks, // [[buffer(0)]]
                 </li>
             </ul>
             <sl-button id="btnrefsClose" slot="footer" variant="primary">Close</sl-button>
-            <h3>References - Poster</h3>
+            <h3>References - Paper</h3>
             <sl-details summary="(click to expand a scollable area)">
                 <img src="figs/refs_image.png"/>
             </sl-details>
