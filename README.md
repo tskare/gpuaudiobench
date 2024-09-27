@@ -4,7 +4,7 @@
 
 I enjoyed meeting and talking with you in September!
 
-The `poster` branch contains the conference poster that you may open in your web browser. I'll merge this to `main`. The poster is in the `media` subfolder.
+The conference poster is in the `media` subfolder. It is an HTML file that may be loaded in your browser.
 
 ## Recent and Upcoming changes
 
