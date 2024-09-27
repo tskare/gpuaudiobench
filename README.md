@@ -1,18 +1,28 @@
 # GPU Audio Benchmark Suite
 
-## Greetings DAFx24 readers!
+## Welcome DAFx24 readers
 
-Please feel free to mail with any questions, and if you're at the conference, possibly see you at Friday afternoon's session.
+I enjoyed meeting and talking with you in September!
 
-Please check back later this week (update: this may slip, apologies!) when I'll have a v1.5 available that contains:
+The `poster` branch contains the conference poster that you may open in your web browser. I'll merge this to `main`. The poster is in the `media` subfolder.
 
-+ code with better names and more comments, for display on the virtual poster.
+## Recent and Upcoming changes
+
+Linux: Makefile change to support systems that didn't have `cuda-samples` headers set system-wide. Documentation added to the `cuda` subdir.
+
+Note that CUDA and `gcc` have compiler version pairing constraints.
+
+## Upcoming changes
+
+A significant merge of a development branch is incoming with:
+
++ CUDA: revised top-level class rather than `#ifdef`s.
 + Facility for specifying multiple benchmarks, for a smoother demo (you may currently rerun the executable without recompiling to accomplish this).
 + additional client-side validations that were omitted in this repo.
 + fixes made for the development/paper version that need to be merged to this repo.
 + an additional benchmark
 
-You'll always be able to access the earlier version with the `v1.0` tag.
+You may access the earlier version with the `v1.0` tag.
 
 ## Project Overview
 
