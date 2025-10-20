@@ -1,0 +1,6 @@
+x64/
+NsightEclipse.xml
+bin/
+*.vcxproj.user
+.vs/
+.vscode/

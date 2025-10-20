@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Audio Benchmark Suite</title>
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Shoelace CSS with SRI -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css"
+        integrity="sha384-D5hfOOF6RWeqHTQpOBovyZ9Q0teRdkTK3qxMVD8JmER+xWZSCgL3VL5LYYtvqVQc"
+        crossorigin="anonymous" />
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/dark.css"
+        media="(prefers-color-scheme: dark)"
+        integrity="sha384-tBukhkKMYVR0GvO1LiwJ5/L7rLlfzJxEd/SDP0G3SKE3PvvVqFK/sCiVGSK3cEHr"
+        crossorigin="anonymous" />
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Shoelace JS with SRI -->
+    <script
+        type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace-autoloader.js"
+        integrity="sha384-GAi5lvnmK5UTYo2YnZDBHvPN3bipOLmXGyDYcLgOJsV/7YZFnQxVxHPLbTBNjdKn"
+        crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>WebGPU Audio Benchmarks</h1>
+                <div class="header-controls">
+                    <sl-icon-button id="theme-toggle" name="moon" label="Toggle dark mode" class="theme-toggle"></sl-icon-button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- WebGPU Support Check -->
+            <sl-alert id="webgpu-alert" variant="danger" closable style="display: none;">
+                <sl-icon slot="icon" name="exclamation-triangle"></sl-icon>
+                <strong>WebGPU not supported!</strong> This browser doesn't support WebGPU. Please use Chrome 113+, Firefox 121+, or Safari 18+.
+            </sl-alert>
+
+            <!-- Hardware Information Panel -->
+            <sl-details id="hardware-info" summary="Hardware Information" class="hardware-panel">
+                <div class="hardware-grid">
+                    <div class="hardware-section">
+                        <h4>GPU Adapter</h4>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Vendor:</span>
+                            <span id="gpu-vendor" class="hardware-value">-</span>
+                        </div>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Architecture:</span>
+                            <span id="gpu-architecture" class="hardware-value">-</span>
+                        </div>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Device:</span>
+                            <span id="gpu-device" class="hardware-value">-</span>
+                        </div>
+                    </div>
+                    <div class="hardware-section">
+                        <h4>WebGPU Capabilities</h4>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Max Buffer Size:</span>
+                            <span id="max-buffer-size" class="hardware-value">-</span>
+                        </div>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Max Compute Workgroup Size:</span>
+                            <span id="max-workgroup-size" class="hardware-value">-</span>
+                        </div>
+                        <div class="hardware-item">
+                            <span class="hardware-label">Max Storage Buffer Size:</span>
+                            <span id="max-storage-buffer" class="hardware-value">-</span>
+                        </div>
+                    </div>
+                    <div class="hardware-section">
+                        <h4>Browser Support</h4>
+                        <div class="hardware-item">
+                            <span class="hardware-label">WebGPU Support:</span>
+                            <span id="webgpu-support" class="hardware-value success">✓ Available</span>
+                        </div>
+                        <div class="hardware-item">
+                            <span class="hardware-label">User Agent:</span>
+                            <span id="user-agent" class="hardware-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </sl-details>
+
+            <!-- Configuration Panel -->
+            <div class="config-panel-horizontal">
+                <span class="config-label">Configuration:</span>
+                <div class="config-inputs">
+                    <sl-input
+                        id="buffer-size"
+                        label="Buffer Size"
+                        type="number"
+                        value="512"
+                        min="64"
+                        max="4096"
+                        step="64"
+                        size="small">
+                    </sl-input>
+
+                    <sl-input
+                        id="track-count"
+                        label="Tracks"
+                        type="number"
+                        value="128"
+                        min="1"
+                        max="1024"
+                        size="small">
+                    </sl-input>
+
+                    <sl-input
+                        id="iterations"
+                        label="Iterations"
+                        type="number"
+                        value="100"
+                        min="10"
+                        max="1000"
+                        size="small">
+                    </sl-input>
+
+                    <sl-input
+                        id="warmup"
+                        label="Warmup"
+                        type="number"
+                        value="3"
+                        min="0"
+                        max="20"
+                        size="small">
+                    </sl-input>
+                </div>
+            </div>
+
+            <!-- Benchmark Category Selector with improved UI -->
+            <div class="benchmark-selector">
+                <div class="selector-controls">
+                    <sl-select id="benchmark-category" label="Benchmark Category" value="basic" size="medium">
+                        <sl-option value="basic">Basic Audio</sl-option>
+                        <sl-option value="datatransfer">Data Transfer</sl-option>
+                        <sl-option value="dsp">DSP Processing</sl-option>
+                        <sl-option value="synthesis">Synthesis</sl-option>
+                        <sl-option value="memory">Memory</sl-option>
+                    </sl-select>
+                    <sl-button id="run-all-category" variant="primary" size="large">
+                        <sl-icon slot="prefix" name="play-circle-fill"></sl-icon>
+                        Run All Benchmarks
+                    </sl-button>
+                </div>
+                <div id="suite-progress" class="suite-progress" style="display: none;">
+                    <sl-progress-bar id="suite-progress-bar" value="0"></sl-progress-bar>
+                    <span id="suite-status">Running benchmarks...</span>
+                </div>
+            </div>
+
+
+            <!-- Benchmark Cards Container -->
+            <div id="benchmark-cards" class="benchmark-cards"></div>
+
+            <!-- Selected Benchmark Content -->
+            <div id="benchmark-content" class="benchmark-content" style="display: none;">
+                <!-- Benchmark details will be dynamically loaded here -->
+            </div>
+        </main>
+
+        <footer>
+            <p>Beta -- In development, changes and revisions expected</p>
+        </footer>
+    </div>
+
+    <!-- Chart.js for visualizations with SRI - use v3 for UMD compatibility -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"
+        integrity="sha384-i5TUoLfK7Jgm31Bt7YPKtdGvR0SgMypJJMwlB0bvJJUcCf1eLWzVJICfCFJNOFug"
+        crossorigin="anonymous"></script>
+
+    <!-- Main application script -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
