@@ -80,4 +80,5 @@ private:
 // CUDA Kernel Declaration
 // ============================================================================
 
-__global__ void RndMemKernel(const float* sampleMem, const int* playheads, float* outBuf);
+__global__ void RndMemKernel(const float* sampleMem, const int* playheads, float* outBuf,
+                             BenchmarkUtils::BenchmarkParams params);

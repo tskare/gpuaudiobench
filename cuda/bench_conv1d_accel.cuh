@@ -1,6 +1,6 @@
 #pragma once
 
-// Frequency-domain Conv1D benchmark driven by cuFFT.
+// Frequency-domain Conv1D benchmark built on cuFFT.
 
 #include "bench_base.cuh"
 #include <cufft.h>
@@ -60,6 +60,7 @@ private:
     cufftComplex* d_fft_input = nullptr;    // Device FFT input buffer
     cufftComplex* d_fft_output = nullptr;   // Device FFT output buffer
     cufftComplex* d_ir_fft = nullptr;       // Pre-computed IR FFTs
+    float* d_input_padded = nullptr;        // Device padded input buffer
 
     // cuFFT plans
     cufftHandle forward_plan = 0;
@@ -73,6 +74,7 @@ private:
     size_t ir_buffer_bytes;
     size_t fft_buffer_size;
     size_t fft_buffer_bytes;
+    size_t input_padded_bytes = 0;
 };
 
 // ============================================================================

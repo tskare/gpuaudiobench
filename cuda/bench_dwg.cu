@@ -4,15 +4,9 @@
 #include <cstring>
 #include <cmath>
 
-// Static constant definitions
 const float DWGBenchmark::DEFAULT_REFLECTION_COEFF = 0.99f;
 const float DWGBenchmark::DEFAULT_DAMPING_COEFF = 0.9999f;
 
-// ============================================================================
-// CUDA Kernel Implementations
-// ============================================================================
-
-// Naive Digital Waveguide Kernel - each thread handles one waveguide
 __global__ void DWG1DNaiveKernel(
     const WaveguideState* waveguideParams,
     float* delayLineForward,
@@ -23,52 +17,40 @@ __global__ void DWG1DNaiveKernel(
 ) {
     int gid = blockDim.x * blockIdx.x + threadIdx.x;
 
-    // Early exit if beyond waveguide count
     if (gid >= params->numWaveguides) return;
 
     const WaveguideState wg = waveguideParams[gid];
     const int maxDelayLength = params->maxLength;
 
-    // Calculate base indices for this waveguide's delay lines
     const int delayBase = gid * maxDelayLength;
 
-    // Process each sample in the buffer
     for (int sample = 0; sample < params->bufferSize; sample++) {
-        // Get input signal
         float input = inputSignal[sample] * wg.gain;
 
-        // Calculate current positions in delay lines
         int currentPos = (wg.writePos + sample) % wg.length;
         int forwardPos = currentPos;
         int backwardPos = (currentPos + wg.length/2) % wg.length;
 
-        // Read from delay lines
         float forwardSample = delayLineForward[delayBase + forwardPos];
         float backwardSample = delayLineBackward[delayBase + backwardPos];
 
-        // Apply damping
         forwardSample *= wg.damping;
         backwardSample *= wg.damping;
 
-        // Inject input at input tap position
         if (currentPos == wg.inputTapPos) {
             forwardSample += input;
             backwardSample += input;
         }
 
-        // Apply reflections and cross-coupling
         float newForward = backwardSample * wg.reflection;
         float newBackward = forwardSample * wg.reflection;
 
-        // Write back to delay lines
         delayLineForward[delayBase + forwardPos] = newForward;
         delayLineBackward[delayBase + backwardPos] = newBackward;
 
-        // Output extraction at output tap
         if (currentPos == wg.outputTapPos) {
             float outputSample = (forwardSample + backwardSample) * BenchmarkConstants::WAVEGUIDE_MIX_FACTOR;
 
-            // Use atomic addition for proper mixing
             if (gid < params->outputTracks) {
                 atomicAdd(&outputBuffer[sample], outputSample);
             }
@@ -76,7 +58,6 @@ __global__ void DWG1DNaiveKernel(
     }
 }
 
-// Optimized Digital Waveguide Kernel with better memory access patterns
 __global__ void DWG1DAccelKernel(
     const WaveguideState* waveguideParams,
     float* delayLineForward,
@@ -90,18 +71,14 @@ __global__ void DWG1DAccelKernel(
 
     if (gid >= params->numWaveguides) return;
 
-    // Load waveguide parameters into registers
     const WaveguideState wg = waveguideParams[gid];
     const int maxDelayLength = params->maxLength;
     const int delayBase = gid * maxDelayLength;
     const int bufferSize = params->bufferSize;
 
-    // Shared memory for input signal and intermediate values
     extern __shared__ float sharedMem[];
     float* sharedInput = sharedMem;
 
-    // Cooperative loading of input signal to shared memory
-    // Each thread loads multiple elements for better efficiency
     int elemsPerThread = (bufferSize + blockDim.x - 1) / blockDim.x;
     for (int i = 0; i < elemsPerThread; i++) {
         int idx = tid + i * blockDim.x;
@@ -111,11 +88,9 @@ __global__ void DWG1DAccelKernel(
     }
     __syncthreads();
 
-    // Optimize for power-of-2 lengths when possible
     bool isPowerOf2 = (wg.length & (wg.length - 1)) == 0;
     int lengthMask = wg.length - 1;
 
-    // Process samples with optimized memory access
     #pragma unroll 4
     for (int sample = 0; sample < bufferSize; sample++) {
         float input = sharedInput[sample] * wg.gain;
@@ -226,19 +201,19 @@ void DWGBenchmark::setupBenchmark() {
 
 void DWGBenchmark::runKernel() {
     // Transfer all data to device
-    cudaMemcpy(d_waveguide_params, h_waveguide_params,
-               getTrackCount() * sizeof(WaveguideState), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_dwg_params, h_dwg_params,
-               sizeof(DWGParams), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_delay_forward, h_delay_forward,
-               delay_line_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_delay_backward, h_delay_backward,
-               delay_line_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_input_signal, h_input_signal,
-               getBufferSize() * sizeof(float), cudaMemcpyHostToDevice);
+    CUDA_CHECK(cudaMemcpy(d_waveguide_params, h_waveguide_params,
+                          getTrackCount() * sizeof(WaveguideState), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_dwg_params, h_dwg_params,
+                          sizeof(DWGParams), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_delay_forward, h_delay_forward,
+                          delay_line_bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_delay_backward, h_delay_backward,
+                          delay_line_bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_input_signal, h_input_signal,
+                          getBufferSize() * sizeof(float), cudaMemcpyHostToDevice));
 
     // Clear output buffer
-    cudaMemset(d_output_buffer, 0, output_buffer_bytes);
+    CUDA_CHECK(cudaMemset(d_output_buffer, 0, output_buffer_bytes));
 
     // Calculate grid dimensions
     int threadsPerBlock = ThreadConfig::DEFAULT_BLOCK_SIZE_1D;
@@ -259,15 +234,16 @@ void DWGBenchmark::runKernel() {
     }
 
     // Synchronize and check for errors
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     // Transfer results back to host
-    cudaMemcpy(h_output_buffer, d_output_buffer,
-               output_buffer_bytes, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_delay_forward, d_delay_forward,
-               delay_line_bytes, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_delay_backward, d_delay_backward,
-               delay_line_bytes, cudaMemcpyDeviceToHost);
+    CUDA_CHECK(cudaMemcpy(h_output_buffer, d_output_buffer,
+                          output_buffer_bytes, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h_delay_forward, d_delay_forward,
+                          delay_line_bytes, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h_delay_backward, d_delay_backward,
+                          delay_line_bytes, cudaMemcpyDeviceToHost));
 }
 
 void DWGBenchmark::performBenchmarkIteration() {

@@ -1,22 +1,20 @@
 #pragma once
 
-// Thread/block size presets shared by CUDA benchmarks.
+// Thread/block launch presets shared by the CUDA benchmarks.
 namespace ThreadConfig {
-    // Preferred 1D launch sizes.
-    constexpr int DEFAULT_BLOCK_SIZE_1D = 256;  // 8 warps, good default occupancy.
-    constexpr int SMALL_BLOCK_SIZE_1D = 128;    // Lower register pressure option.
-    constexpr int LARGE_BLOCK_SIZE_1D = 512;    // Helpful for bandwidth-bound work.
+    // 1D kernels.
+    constexpr int DEFAULT_BLOCK_SIZE_1D = 256;
+    constexpr int SMALL_BLOCK_SIZE_1D = 128;
+    constexpr int LARGE_BLOCK_SIZE_1D = 512;
     constexpr int MAX_BLOCK_SIZE_1D = 1024;
 
-    // 3D launch presets used by the FDTD-style kernels.
+    // 3D kernels (e.g. FDTD).
     constexpr int BLOCK_SIZE_3D_X = 8;
     constexpr int BLOCK_SIZE_3D_Y = 8;
     constexpr int BLOCK_SIZE_3D_Z = 8;
-
     constexpr int BLOCK_SIZE_3D_THIN_X = 16;
     constexpr int BLOCK_SIZE_3D_THIN_Y = 16;
     constexpr int BLOCK_SIZE_3D_THIN_Z = 2;
-
     constexpr int BLOCK_SIZE_3D_SMALL_X = 4;
     constexpr int BLOCK_SIZE_3D_SMALL_Y = 4;
     constexpr int BLOCK_SIZE_3D_SMALL_Z = 4;

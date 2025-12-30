@@ -70,7 +70,8 @@ private:
 // ============================================================================
 
 __global__ void Conv1DTextureMemoryImplKernel(
-    const float* bufIn, float* bufOut, const cudaTextureObject_t textureRefIRs, int irLen);
+    const float* bufIn, float* bufOut, const cudaTextureObject_t textureRefIRs, int irLen,
+    BenchmarkUtils::BenchmarkParams params);
 
 // ============================================================================
 // Legacy Interface Wrapper

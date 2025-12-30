@@ -82,4 +82,5 @@ private:
 __device__ cuComplex my_cexpf(cuComplex expon);
 
 // Modal synthesis kernel
-__global__ void ModalSynthesisKernel(const float* bufIn, float* bufOut, int nModes);
+__global__ void ModalSynthesisKernel(const float* bufIn, float* bufOut, int nModes,
+                                     BenchmarkUtils::BenchmarkParams params);

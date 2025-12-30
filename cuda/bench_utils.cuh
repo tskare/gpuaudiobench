@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cstring>
 
+// Shared helpers for memory management, timing, and data generation.
+
 namespace BenchmarkUtils {
 
     // ============================================================================
@@ -33,31 +35,25 @@ namespace BenchmarkUtils {
     // ============================================================================
 
     struct BenchmarkConfig {
-        // Buffer configuration
         int bufferSize = 512;
-        int trackCount = 256;
+        int trackCount = 128;
         int sampleRate = 48000;
 
-        // Execution configuration
         int iterations = 100;
         int warmupIterations = 3;
 
-        // Validation and debugging
         bool enableValidation = false;
         bool enableProfiling = false;
         bool verboseOutput = false;
 
-        // Output configuration
         std::string outputDirectory = "/tmp";
         std::string outputPrefix = "";
         bool writeToFile = true;
         bool printStatistics = true;
 
-        // Performance tuning
         int preferredBlockSize = 256;
         bool useOptimalOccupancy = false;
 
-        // DAW simulation (if needed)
         bool enableDAWSimulation = false;
         int dawSleepMs = 90;
 
@@ -207,8 +203,8 @@ namespace BenchmarkUtils {
     };
 
     void collectLatencies(std::vector<float>& latencies,
-                         std::function<void()> benchmark,
-                         int iterations);
+                          std::function<void()> benchmark,
+                          int iterations);
 
     // ============================================================================
     // Data Generation Utilities
@@ -224,7 +220,7 @@ namespace BenchmarkUtils {
     };
 
     void generateImpulseResponse(float* buffer, int length, float frequency,
-                                WindowType window_type = WindowType::HAMMING);
+                                 WindowType window_type = WindowType::HAMMING);
 
     enum class TestPattern {
         ZEROS,
@@ -263,9 +259,9 @@ namespace BenchmarkUtils {
 
     template<typename KernelFunc, typename... Args>
     void launchKernel(KernelFunc kernel,
-                     dim3 gridDim,
-                     dim3 blockDim,
-                     Args&&... args) {
+                      dim3 gridDim,
+                      dim3 blockDim,
+                      Args&&... args) {
         // Launch kernel
         kernel<<<gridDim, blockDim>>>(std::forward<Args>(args)...);
 
@@ -286,9 +282,9 @@ namespace BenchmarkUtils {
 
     template<typename KernelFunc, typename... Args>
     void launchKernel1D(KernelFunc kernel,
-                       size_t totalThreads,
-                       int preferredBlockSize = 256,
-                       Args&&... args) {
+                        size_t totalThreads,
+                        int preferredBlockSize = 256,
+                        Args&&... args) {
         // Calculate optimal grid dimensions
         int blockSize = std::min(preferredBlockSize, static_cast<int>(totalThreads));
         blockSize = std::max(blockSize, 32); // Minimum warp size
@@ -301,8 +297,8 @@ namespace BenchmarkUtils {
 
     template<typename KernelFunc, typename... Args>
     void launchKernelOptimal(KernelFunc kernel,
-                            size_t totalThreads,
-                            Args&&... args) {
+                             size_t totalThreads,
+                             Args&&... args) {
         int minGridSize, blockSize;
 
         // Use CUDA occupancy calculator
@@ -323,9 +319,9 @@ namespace BenchmarkUtils {
 
     template<typename KernelFunc, typename... Args>
     double launchKernelTimed(KernelFunc kernel,
-                            dim3 gridDim,
-                            dim3 blockDim,
-                            Args&&... args) {
+                             dim3 gridDim,
+                             dim3 blockDim,
+                             Args&&... args) {
         CudaEventTimer timer;
         timer.start();
         launchKernel(kernel, gridDim, blockDim, std::forward<Args>(args)...);

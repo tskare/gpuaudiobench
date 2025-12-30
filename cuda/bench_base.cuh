@@ -12,8 +12,8 @@
 #include "globals.cuh"
 #include "bench_utils.cuh"
 
-// Kernel launch workflow: compute grid dims, run <<<grid, block>>>, then synchronize.
-// Use BenchmarkUtils::launchKernelTimed() when you need GPU duration measurements.
+// Kernel launch workflow: compute grid dims, launch <<<grid, block>>>, then check errors.
+// For timed runs use BenchmarkUtils::launchKernelTimed() to collect GPU duration.
 
 class GPUABenchmark {
 public:
@@ -92,11 +92,8 @@ public:
     // ============================================================================
 
     virtual void setupBenchmark() = 0;
-
     virtual void runKernel() = 0;
-
     virtual void performBenchmarkIteration() = 0;
-
     virtual void validate(ValidationData& validation_data) = 0;
 
     // ============================================================================
@@ -104,19 +101,12 @@ public:
     // ============================================================================
 
     void allocateBuffers(size_t element_count);
-
     void transferToDevice();
-
     void transferToHost();
-
     BenchmarkResult runKernelBenchmark(int iterations = NRUNS, int warmupIterations = 3);
-
     BenchmarkResult runBenchmark(int iterations = NRUNS, int warmupIterations = 3);
-
     void generateTestData(unsigned int seed = 42);
-
     void writeResults(const BenchmarkResult& result, const std::string& filename = "");
-
     void printResults(const BenchmarkResult& result);
 
     // ============================================================================
@@ -134,25 +124,15 @@ public:
 
 protected:
     float* getHostInput() { return buffers.h_input; }
-
     float* getHostOutput() { return buffers.h_output; }
-
     float* getDeviceInput() { return buffers.d_input; }
-
     float* getDeviceOutput() { return buffers.d_output; }
-
     BenchmarkUtils::BenchmarkParams makeBenchmarkParams(float gainValue = 0.0f) const;
-
     std::pair<int, int> calculateGridDimensions(int desired_threads_per_block = 256) const;
-
     void synchronizeAndCheck();
-
     ValidationData compareWithReference(const float* cpu_reference, float tolerance = 1e-5f);
-
     void resetGpuIterationMetrics();
-
     void recordGpuDuration(float milliseconds);
-
     BenchmarkResult runWithIteration(int iterations,
                                      int warmupIterations,
                                      const std::function<void()>& iterationBody);

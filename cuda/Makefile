@@ -310,7 +310,7 @@ GENCODE_FLAGS += -gencode arch=compute_$(HIGHEST_SM),code=compute_$(HIGHEST_SM)
 endif
 endif
 
-ALL_CCFLAGS += --threads 0 --std=c++11
+ALL_CCFLAGS += --threads 0 --std=c++17
 
 ifeq ($(SAMPLE_ENABLED),0)
 EXEC ?= @echo "[@]"
@@ -323,47 +323,50 @@ all: build
 
 build: gpubench
 
+# Rebuild objects when any local CUDA header changes.
+CUDA_HEADERS := $(wildcard *.cuh)
+
 # Object file rules
 # Base infrastructure
-bench_base.o:bench_base.cu
+bench_base.o:bench_base.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_utils.o:bench_utils.cu
+bench_utils.o:bench_utils.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 # Data transfer benchmarks
-bench_datatransfer_variants.o:bench_datatransfer_variants.cu
+bench_datatransfer_variants.o:bench_datatransfer_variants.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 # Benchmark files (all current benchmarks)
-bench_conv1d_accel.o:bench_conv1d_accel.cu
+bench_conv1d_accel.o:bench_conv1d_accel.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_conv1d.o:bench_conv1d.cu
+bench_conv1d.o:bench_conv1d.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_datatransfer.o:bench_datatransfer.cu
+bench_datatransfer.o:bench_datatransfer.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_dwg.o:bench_dwg.cu
+bench_dwg.o:bench_dwg.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_fdtd3d.o:bench_fdtd3d.cu
+bench_fdtd3d.o:bench_fdtd3d.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_fft.o:bench_fft.cu
+bench_fft.o:bench_fft.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_gain.o:bench_gain.cu
+bench_gain.o:bench_gain.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_gainstats.o:bench_gainstats.cu
+bench_gainstats.o:bench_gainstats.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_iir.o:bench_iir.cu
+bench_iir.o:bench_iir.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_modal.o:bench_modal.cu
+bench_modal.o:bench_modal.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_noop.o:bench_noop.cu
+bench_noop.o:bench_noop.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-bench_rndmem.o:bench_rndmem.cu
-	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
-
-globals.o:globals.cu
+bench_rndmem.o:bench_rndmem.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-main.o:main.cu
+globals.o:globals.cu $(CUDA_HEADERS)
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+
+main.o:main.cu $(CUDA_HEADERS)
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 # Define all object files

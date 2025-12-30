@@ -9,6 +9,8 @@
 //==============================================================================
 
 // FDTD3D Velocity Update Kernel - Updates all three velocity components
+// TODO(cpp): Consider temporal blocking with shared-memory tiling + halo cells to amortize
+// global memory traffic across multiple time steps per launch.
 __global__ void fdtd3d_update_velocity_kernel(float* pressure,
                                               float* velocity_x,
                                               float* velocity_y,
@@ -481,24 +483,11 @@ void FDTD3DBenchmark::cleanupFDTD3DGrids() {
                                            fdtd3d_grid->d_velocity_y, fdtd3d_grid->d_velocity_z,
                                            d_input_signal, d_output_buffer,
                                            reinterpret_cast<float*>(d_fdtd3d_params)});
-        free(fdtd3d_grid);
+        BenchmarkUtils::freeHostBuffers({fdtd3d_grid});
         fdtd3d_grid = nullptr;
     }
 
     h_input_signal = h_output_buffer = nullptr;
     d_input_signal = d_output_buffer = nullptr;
     d_fdtd3d_params = nullptr;
-}
-
-        }
-
-        // Print and save results
-        benchmark.printResults(result);
-        benchmark.writeResults(result);
-
-        printf("FDTD3D benchmark completed successfully!\n");
-
-    } catch (const std::exception& e) {
-        printf("Error running FDTD3D benchmark: %s\n", e.what());
-    }
 }

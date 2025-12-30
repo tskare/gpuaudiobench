@@ -1,45 +1,34 @@
 #include "bench_gainstats.cuh"
 #include "thread_config.cuh"
+#include "benchmark_constants.cuh"
 #include <cstring>
 #include <cmath>
 
-// Static constant definition
-const float GainStatsBenchmark::GAIN_VALUE = 0.5f;
-
-// ============================================================================
-// CUDA Kernel Implementation
-// ============================================================================
-
-__global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats, int numElements) {
+__global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats,
+                                BenchmarkUtils::BenchmarkParams params) {
     int trackIdx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int trackCount = static_cast<int>(params.trackCount);
+    const int bufferSize = static_cast<int>(params.bufferSize);
 
-    if (trackIdx >= NTRACKS) return;
+    if (trackIdx >= trackCount) return;
 
     float mean = 0.0f;
-    float maxVal = -1e9f; // Initialize to very small value
-
-    // Process entire buffer for this track
-    for (int i = 0; i < BUFSIZE; i++) {
-        int idx = trackIdx * BUFSIZE + i;
+    float maxVal = -1e9f;
+    for (int i = 0; i < bufferSize; i++) {
+        int idx = trackIdx * bufferSize + i;
         float samp = bufIn[idx];
         mean += samp;
-        bufOut[idx] = samp * GainStatsBenchmark::GAIN_VALUE;
+        bufOut[idx] = samp * BenchmarkConstants::GAINSTATS_GAIN;
 
-        // Track maximum value
         if (samp > maxVal) {
             maxVal = samp;
         }
     }
-    mean /= BUFSIZE;
+    mean /= bufferSize;
 
-    // Store statistics: [mean, max] per track
     stats[trackIdx * GainStatsBenchmark::NSTATS + 0] = mean;
     stats[trackIdx * GainStatsBenchmark::NSTATS + 1] = maxVal;
 }
-
-// ============================================================================
-// GainStatsBenchmark Implementation
-// ============================================================================
 
 GainStatsBenchmark::GainStatsBenchmark(size_t buffer_size, size_t track_count)
     : GPUABenchmark("GainStats", buffer_size, track_count) {
@@ -66,7 +55,8 @@ void GainStatsBenchmark::setupBenchmark() {
 
     calculateCPUReference();
 
-    printf("GainStats benchmark setup complete (gain = %.1f, computing mean + max per track)\n", GAIN_VALUE);
+    printf("GainStats benchmark setup complete (gain = %.1f, computing mean + max per track)\n",
+           BenchmarkConstants::GAINSTATS_GAIN);
 }
 
 void GainStatsBenchmark::runKernel() {
@@ -80,11 +70,12 @@ void GainStatsBenchmark::performBenchmarkIteration() {
 
     auto [blocks_per_grid, threads_per_block] = calculateGridDimensions(ThreadConfig::DEFAULT_BLOCK_SIZE_1D);
 
+    const auto params = makeBenchmarkParams(BenchmarkConstants::GAINSTATS_GAIN);
     GainStatsKernel<<<blocks_per_grid, threads_per_block>>>(
         getDeviceInput(),
         getDeviceOutput(),
         d_stats,
-        static_cast<int>(getTotalElements())
+        params
     );
 
     synchronizeAndCheck();
@@ -115,10 +106,6 @@ void GainStatsBenchmark::validate(ValidationData& validation_data) {
     }
 }
 
-// ============================================================================
-// Private Helper Methods
-// ============================================================================
-
 void GainStatsBenchmark::allocateStatsBuffers() {
     h_stats = BenchmarkUtils::allocateHostBuffer<float>(
         stats_count, benchmark_name_ + " host stats buffer");
@@ -134,7 +121,7 @@ void GainStatsBenchmark::calculateCPUReference() {
     const float* input = getHostInput();
 
     for (size_t i = 0; i < getTotalElements(); ++i) {
-        cpu_reference[i] = GAIN_VALUE * input[i];
+        cpu_reference[i] = BenchmarkConstants::GAINSTATS_GAIN * input[i];
     }
 
     for (size_t track = 0; track < getTrackCount(); ++track) {

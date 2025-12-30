@@ -7,7 +7,6 @@ struct IIRCoefficients;
 
 class GainBenchmark : public GPUABenchmark {
 private:
-    static const float GAIN_VALUE;
     float* cpu_reference = nullptr;  // For validation
     bool enable_validation_;
 

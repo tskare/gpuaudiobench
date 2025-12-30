@@ -2,7 +2,7 @@
 
 // Storage for globals.
 int FS = 48000;
-int NTRACKS = 256;  // Default value, can be overridden by --nTracks
+int NTRACKS = 128;  // Default value, can be overridden by --nTracks
 int BUFSIZE = 512;  // Default value, can be overridden by --bufferSize
 int NRUNS = 100;
 std::string OUTPUT_FILE = "";  // Default is no output file

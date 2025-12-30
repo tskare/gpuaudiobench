@@ -8,8 +8,6 @@ class GainStatsBenchmark : public GPUABenchmark {
 public:
     // Statistics computed per track
     static const int NSTATS = 2;  // mean, max
-    static const float GAIN_VALUE;
-
     // ============================================================================
     // Constructor/Destructor
     // ============================================================================
@@ -55,4 +53,5 @@ private:
 // CUDA Kernel Declaration
 // ============================================================================
 
-__global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats, int numElements);
+__global__ void GainStatsKernel(const float* bufIn, float* bufOut, float* stats,
+                                BenchmarkUtils::BenchmarkParams params);

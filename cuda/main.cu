@@ -84,11 +84,11 @@ static const std::vector<BenchmarkEntry>& getBenchmarkRegistry() {
         {"NoOp", [] { return std::make_unique<NoOpBenchmark>(); }},
         {"gain", [] { return std::make_unique<GainBenchmark>(); }},
         {"GainStats", [] { return std::make_unique<GainStatsBenchmark>(); }},
-        {"datacopy0199", [] { return std::make_unique<DataTransferBenchmark>(0.99f, 0.01f); }},
-        {"datacopy2080", [] { return std::make_unique<DataTransferBenchmark>(0.80f, 0.20f); }},
+        {"datacopy0199", [] { return std::make_unique<DataTransferBenchmark>(0.01f, 0.99f); }},
+        {"datacopy2080", [] { return std::make_unique<DataTransferBenchmark>(0.20f, 0.80f); }},
         {"datacopy5050", [] { return std::make_unique<DataTransferBenchmark>(0.50f, 0.50f); }},
-        {"datacopy8020", [] { return std::make_unique<DataTransferBenchmark>(0.20f, 0.80f); }},
-        {"datacopy9901", [] { return std::make_unique<DataTransferBenchmark>(0.01f, 0.99f); }},
+        {"datacopy8020", [] { return std::make_unique<DataTransferBenchmark>(0.80f, 0.20f); }},
+        {"datacopy9901", [] { return std::make_unique<DataTransferBenchmark>(0.99f, 0.01f); }},
         {"FFT1D", [] { return std::make_unique<FFTBenchmark>(); }},
         {"IIRFilter", [] { return std::make_unique<IIRBenchmark>(); }},
         {"Conv1D", [] { return std::make_unique<Conv1DBenchmark>(); }},
@@ -187,7 +187,7 @@ static void printHelp() {
 	printf("  --benchmark [name]  Run specific benchmark (see list below)\n");
 	printf("  --fs [rate]         Set sampling rate (default: 48000)\n");
 	printf("  --bufferSize [size] Set buffer size (default: 512)\n");
-	printf("  --nTracks [count]   Set number of tracks (default: 256)\n");
+	printf("  --nTracks [count]   Set number of tracks (default: 128)\n");
 	printf("  --nRuns [count]     Set number of iterations (default: 100)\n");
 	printf("  --outputfile [file] Save results to CSV file\n");
 	printf("  --json              Output results in JSON format\n");

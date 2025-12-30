@@ -1,13 +1,7 @@
 #include "bench_gain.cuh"
 #include "thread_config.cuh"
+#include "benchmark_constants.cuh"
 #include <cstring>
-
-// Static constant definition
-const float GainBenchmark::GAIN_VALUE = 2.0f;
-
-// ============================================================================
-// CUDA Kernel (unchanged from original)
-// ============================================================================
 
 __global__ void GainKernel(const float* bufIn,
                            float* bufOut,
@@ -21,7 +15,6 @@ __global__ void GainKernel(const float* bufIn,
         return;
     }
 
-    // Process entire buffer for this track
     for (int sample = 0; sample < bufferSize; ++sample) {
         const int idx = trackIdx * bufferSize + sample;
         if (idx < totalSamples) {
@@ -29,10 +22,6 @@ __global__ void GainKernel(const float* bufIn,
         }
     }
 }
-
-// ============================================================================
-// GainBenchmark Implementation
-// ============================================================================
 
 GainBenchmark::GainBenchmark(size_t buffer_size, size_t track_count, bool enable_validation)
     : GPUABenchmark("Gain", buffer_size, track_count), enable_validation_(enable_validation) {
@@ -52,7 +41,7 @@ void GainBenchmark::setupBenchmark() {
         calculateCPUReference();
     }
 
-    printf("Gain benchmark setup complete (gain = %.1f)\n", GAIN_VALUE);
+    printf("Gain benchmark setup complete (gain = %.1f)\n", BenchmarkConstants::GAIN_VALUE);
 }
 
 void GainBenchmark::runKernel() {
@@ -64,7 +53,7 @@ void GainBenchmark::performBenchmarkIteration() {
 
     auto [blocks_per_grid, threads_per_block] = calculateGridDimensions(ThreadConfig::DEFAULT_BLOCK_SIZE_1D);
 
-    const auto params = makeBenchmarkParams(GAIN_VALUE);
+    const auto params = makeBenchmarkParams(BenchmarkConstants::GAIN_VALUE);
 
     const double gpuMs = BenchmarkUtils::launchKernelTimed(
         GainKernel,
@@ -93,10 +82,6 @@ void GainBenchmark::validate(ValidationData& validation_data) {
     }
 }
 
-// ============================================================================
-// Private Helper Methods
-// ============================================================================
-
 void GainBenchmark::calculateCPUReference() {
     if (!enable_validation_ || !cpu_reference) {
         return;
@@ -105,7 +90,7 @@ void GainBenchmark::calculateCPUReference() {
     const float* input = getHostInput();
 
     for (size_t i = 0; i < getTotalElements(); ++i) {
-        cpu_reference[i] = GAIN_VALUE * input[i];
+        cpu_reference[i] = BenchmarkConstants::GAIN_VALUE * input[i];
     }
 }
 
