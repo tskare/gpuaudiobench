@@ -158,20 +158,21 @@ void ModalBenchmark::modalSynthesisCPUReference(const float* mode_params, float*
     // This validates output buffer addressing and kernel branch logic without full modal synthesis.
     int modes_to_process = std::min(num_modes, output_tracks);
 
+    // Match GPU kernel: exp(0.5 + 0.5i).real = exp(0.5) * cos(0.5) ≈ 1.4469
+    const float cexp_real = expf(0.5f) * cosf(0.5f);
+
     for (int i = 0; i < modes_to_process; ++i) {
         int param_idx = i * NUM_MODE_PARAMS;
 
         float amp = mode_params[param_idx + AMPLITUDE];
-        float freq = mode_params[param_idx + FREQUENCY];
-        float phase = mode_params[param_idx + PHASE];
 
-        float state_re = 0.5f;
-        float state_im = 0.5f;
+        // Match GPU kernel: output_value = amp * my_cexpf(0.5 + 0.5i).x
+        float output_value = amp * cexp_real;
 
         // Only write if this mode contributes to output (matches GPU kernel)
         if (i < output_tracks) {
             for (int si = 0; si < buffer_size; ++si) {
-                output[i * buffer_size + si] = state_re;
+                output[i * buffer_size + si] = output_value;
             }
         }
     }
