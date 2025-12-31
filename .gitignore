@@ -1,6 +1,7 @@
 # Mac
 .DS_Store
 
-# Mac-XCode
-xcuserdata/
-
+# plaintext todo/feature tracking
+PLAN-*.md
+TODO-*.md
+CLEANUP-*.md
