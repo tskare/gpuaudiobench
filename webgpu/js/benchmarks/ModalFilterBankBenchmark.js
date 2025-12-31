@@ -1,5 +1,3 @@
-// Modal Filter Bank Benchmark - Bank of resonant modes accumulated per track
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -37,7 +35,6 @@ export class ModalFilterBankBenchmark extends GPUABenchmark {
     }
 
     async setupBuffers() {
-        // Mode parameters (amp, freq, phase, stateRe, stateIm, ...)
         this.modeData = this.generateModeParameters();
         this.modeBuffer = this.createBuffer(
             'modes',
@@ -46,7 +43,6 @@ export class ModalFilterBankBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('modes', this.modeData);
 
-        // Output buffer: sample-major layout per track
         const outputSamples = this.outputTracks * this.bufferSize;
         this.outputBuffer = this.createBuffer(
             'output',
@@ -55,7 +51,6 @@ export class ModalFilterBankBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(outputSamples));
 
-        // Uniform parameters
         const paramsData = new ArrayBuffer(16);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -146,60 +141,7 @@ export class ModalFilterBankBenchmark extends GPUABenchmark {
 
     async validate() {
         const gpuOutput = await this.readBuffer('output');
-        const metrics = this.calculateErrorMetrics(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.MODAL_SYNTHESIS);
-        return {
-            passed: metrics.passed,
-            maxError: metrics.maxError,
-            meanError: metrics.meanError,
-            tolerance: metrics.tolerance,
-            message: metrics.message
-        };
-    }
-
-    calculateErrorMetrics(gpuData, referenceData, tolerance) {
-        if (!referenceData) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: 'No reference data available'
-            };
-        }
-
-        if (gpuData.length !== referenceData.length) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: `Length mismatch: got ${gpuData.length}, expected ${referenceData.length}`
-            };
-        }
-
-        let maxError = 0;
-        let totalError = 0;
-
-        for (let i = 0; i < referenceData.length; i++) {
-            const error = Math.abs(gpuData[i] - referenceData[i]);
-            if (error > maxError) {
-                maxError = error;
-            }
-            totalError += error;
-        }
-
-        const meanError = referenceData.length > 0 ? totalError / referenceData.length : 0;
-        const passed = maxError <= tolerance;
-
-        return {
-            passed,
-            maxError,
-            meanError,
-            tolerance,
-            message: passed
-                ? `Validation passed (max error ${maxError.toExponential(3)})`
-                : `Max error ${maxError.toExponential(3)} exceeds tolerance ${tolerance}`
-        };
+        return this.validateOutput(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.MODAL_SYNTHESIS);
     }
 
     getMetadata() {

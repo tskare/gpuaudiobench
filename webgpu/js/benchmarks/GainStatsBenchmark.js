@@ -1,5 +1,3 @@
-// GainStats Benchmark - Gain processing with per-track statistics
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -24,7 +22,6 @@ export class GainStatsBenchmark extends GPUABenchmark {
     async setupBuffers() {
         const totalSamples = this.bufferSize * this.trackCount;
 
-        // Input buffer populated with random audio test data
         this.inputData = this.bufferManager.generateAudioTestData(totalSamples, 'random');
         this.inputBuffer = this.createBuffer(
             'input',
@@ -33,7 +30,6 @@ export class GainStatsBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('input', this.inputData);
 
-        // Output buffer (track-major layout to mirror native implementations)
         this.outputBuffer = this.createBuffer(
             'output',
             totalSamples * 4,
@@ -41,7 +37,6 @@ export class GainStatsBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(totalSamples));
 
-        // Statistics buffer stores [mean, max] per track
         this.statsBuffer = this.createBuffer(
             'stats',
             this.trackCount * 2 * 4,
@@ -49,7 +44,6 @@ export class GainStatsBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('stats', new Float32Array(this.trackCount * 2));
 
-        // Uniform parameters
         const paramsData = new ArrayBuffer(16);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -108,9 +102,8 @@ export class GainStatsBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        const zeroStats = new Float32Array(this.trackCount * 2);
+        const zeroStats = this.getZeroedArray('f32', this.trackCount * 2);
         this.writeBuffer('stats', zeroStats);
-        // Workgroup size is 64, dispatch enough workgroups to cover all tracks
         const workgroups = Math.ceil(this.trackCount / 64);
         await this.executeComputePass(workgroups, 1, 1);
     }
@@ -125,11 +118,15 @@ export class GainStatsBenchmark extends GPUABenchmark {
         const passed = audioMetrics.passed && statsMetrics.passed;
         const maxError = Math.max(audioMetrics.maxError, statsMetrics.maxError);
         const meanError = (audioMetrics.meanError + statsMetrics.meanError) / 2;
+        const errorCount = (audioMetrics.errorCount || 0) + (statsMetrics.errorCount || 0);
+        const samplesChecked = (audioMetrics.samplesChecked || 0) + (statsMetrics.samplesChecked || 0);
 
         return {
             passed,
             maxError,
             meanError,
+            errorCount,
+            samplesChecked,
             tolerance: Math.max(audioMetrics.tolerance, statsMetrics.tolerance),
             message: `${audioMetrics.message} | ${statsMetrics.message}`,
             components: {

@@ -1,15 +1,12 @@
-// Random Memory Read Benchmark - Granular synthesis simulation with non-sequential access patterns
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
 
 export class RandomMemoryBenchmark extends GPUABenchmark {
     constructor(device, bufferSize = 512, trackCount = 128, options = {}) {
-    super(device, 'RandomMemory', bufferSize, trackCount);
+        super(device, 'RandomMemory', bufferSize, trackCount);
         this.bufferManager = new BufferManager(device);
 
-        // Configuration options
         this.sampleMemorySizeMB = Number.isFinite(Number(options.sampleMemorySize))
             ? Math.max(32, Number(options.sampleMemorySize))
             : 128;
@@ -26,7 +23,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
         this.referenceData = null;
         this.sampleData = null;
     }
-
     validateConfiguration() {
         const minRequiredSamples = this.bufferSize + this.maxLoopLength + 1;
         if (this.sampleMemorySize < minRequiredSamples) {
@@ -56,7 +52,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
     async setupBuffers() {
         console.log(`Creating sample memory buffer: ${this.sampleMemorySizeMB} MB`);
 
-        // Create large sample memory buffer with random audio data
         this.sampleData = this.bufferManager.generateAudioTestData(this.sampleMemorySize, 'random');
         this.sampleMemoryBuffer = this.createBuffer(
             'sample_memory',
@@ -65,12 +60,10 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('sample_memory', this.sampleData);
 
-        // Generate random playhead positions for each track
         this.playheadPositions = new Uint32Array(this.trackCount);
         const maxStartPosition = this.sampleMemorySize - this.maxLoopLength - this.bufferSize;
 
         for (let i = 0; i < this.trackCount; i++) {
-            // Generate random loop parameters
             const loopLength = Math.floor(
                 Math.random() * (this.maxLoopLength - this.minLoopLength) + this.minLoopLength
             );
@@ -80,7 +73,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
             this.playheadPositions[i] = startPosition;
         }
 
-        // Create playheads buffer
         this.playheadsBuffer = this.createBuffer(
             'playheads',
             this.trackCount * 4, // 4 bytes per uint32
@@ -88,7 +80,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
         );
         this.device.queue.writeBuffer(this.playheadsBuffer, 0, this.playheadPositions);
 
-        // Create output buffer
         const totalSamples = this.bufferSize * this.trackCount;
         this.outputBuffer = this.createBuffer(
             'output',
@@ -96,11 +87,9 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
             GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         );
 
-        // Clear output buffer
         const zeros = new Float32Array(totalSamples);
         this.writeBuffer('output', zeros);
 
-        // Create parameters buffer
         const paramsData = new ArrayBuffer(16); // 4 uint32s
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -115,7 +104,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
         );
         this.device.queue.writeBuffer(this.paramsBuffer, 0, paramsData);
 
-        // Generate CPU reference for validation
         this.generateCPUReference();
     }
 
@@ -123,12 +111,10 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
         const totalSamples = this.bufferSize * this.trackCount;
         this.referenceData = new Float32Array(totalSamples);
 
-        // Process each track
         for (let track = 0; track < this.trackCount; track++) {
             const outputStart = track * this.bufferSize;
             const playheadStart = this.playheadPositions[track];
 
-            // Process samples for this track
             for (let i = 0; i < this.bufferSize; i++) {
                 const samplePosition = playheadStart + i;
 
@@ -167,7 +153,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        // Use the standard compute pass execution helper
         // Workgroup size is 64, dispatch enough workgroups to cover all tracks
         const workgroups = Math.ceil(this.trackCount / 64);
         await this.executeComputePass(workgroups, 1, 1);
@@ -203,7 +188,6 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
     }
 
     estimateBandwidth() {
-        // This will be calculated after benchmark runs
         return 0; // Placeholder, will be updated in metadata
     }
 

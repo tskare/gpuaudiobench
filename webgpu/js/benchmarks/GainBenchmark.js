@@ -1,5 +1,3 @@
-// Gain Benchmark - Simple audio gain processing
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -84,7 +82,6 @@ export class GainBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        // Workgroup size is 64
         const workgroups = Math.ceil(this.trackCount / 64);
         await this.executeComputePass(workgroups, 1, 1);
     }

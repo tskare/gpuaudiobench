@@ -1,26 +1,15 @@
-
 export const VALIDATION_TOLERANCE = {
-        DEFAULT: 1e-6,
-
-        GAIN: 1e-5,
-
-        IIR_FILTER: 1e-4,
-
-        DATA_TRANSFER: 1e-4,
-
-        FFT_OPERATIONS: 1e-3,
-
-        FDTD_SIMULATION: 5e-2,
-
-        RANDOM_MEMORY: 1e-6,
-
-        CONVOLUTION: 1e-4,
-
-        MODAL_SYNTHESIS: 1e-4,
-
-        DWG_SYNTHESIS: 5e-3,
+    DEFAULT: 1e-6,
+    GAIN: 1e-5,
+    IIR_FILTER: 1e-4,
+    DATA_TRANSFER: 1e-4,
+    FFT_OPERATIONS: 1e-3,
+    FDTD_SIMULATION: 5e-2,
+    RANDOM_MEMORY: 1e-6,
+    CONVOLUTION: 1e-4,
+    MODAL_SYNTHESIS: 1e-4,
+    DWG_SYNTHESIS: 5e-3,
 };
-
 export function getToleranceRationale(tolerance) {
     const entry = Object.entries(VALIDATION_TOLERANCE).find(([_, val]) => val === tolerance);
     if (!entry) return 'Custom tolerance value';

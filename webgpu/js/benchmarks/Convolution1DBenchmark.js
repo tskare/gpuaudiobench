@@ -1,12 +1,10 @@
-// Convolution1D Benchmark - Windowed FIR convolution per track
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
 
 export class Convolution1DBenchmark extends GPUABenchmark {
     constructor(device, bufferSize = 512, trackCount = 128, options = {}) {
-    super(device, 'Conv1D', bufferSize, trackCount);
+        super(device, 'Conv1D', bufferSize, trackCount);
         this.bufferManager = new BufferManager(device);
 
         const irCandidate = Number(options?.irLength);
@@ -32,7 +30,6 @@ export class Convolution1DBenchmark extends GPUABenchmark {
     async setupBuffers() {
         const totalSamples = this.bufferSize * this.trackCount;
 
-        // Input audio data
         this.inputData = this.bufferManager.generateAudioTestData(totalSamples, 'random');
         this.inputBuffer = this.createBuffer(
             'input',
@@ -41,7 +38,6 @@ export class Convolution1DBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('input', this.inputData);
 
-        // Impulse responses per track
         this.impulseData = this.generateImpulseResponses();
         this.irBuffer = this.createBuffer(
             'impulse',
@@ -50,7 +46,6 @@ export class Convolution1DBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('impulse', this.impulseData);
 
-        // Output buffer (sample-major layout)
         this.outputBuffer = this.createBuffer(
             'output',
             totalSamples * 4,
@@ -58,7 +53,6 @@ export class Convolution1DBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(totalSamples));
 
-        // Uniform parameters: buffer size, IR length, track count, mode
         const paramsData = new ArrayBuffer(16);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -122,7 +116,6 @@ export class Convolution1DBenchmark extends GPUABenchmark {
                 return 0.5 * (1 - Math.cos(2 * Math.PI * ratio));
         }
     }
-
     besselI0(x) {
         let result = 1.0;
         let term = 1.0;
@@ -179,67 +172,13 @@ export class Convolution1DBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        // Workgroup size is 64, dispatch enough workgroups to cover all tracks
         const workgroups = Math.ceil(this.trackCount / 64);
         await this.executeComputePass(workgroups, 1, 1);
     }
 
     async validate() {
         const gpuOutput = await this.readBuffer('output');
-        const metrics = this.calculateErrorMetrics(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.CONVOLUTION);
-        return {
-            passed: metrics.passed,
-            maxError: metrics.maxError,
-            meanError: metrics.meanError,
-            tolerance: metrics.tolerance,
-            message: metrics.message
-        };
-    }
-
-    calculateErrorMetrics(gpuData, referenceData, tolerance) {
-        if (!referenceData) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: 'No reference data available'
-            };
-        }
-
-        if (gpuData.length !== referenceData.length) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: `Length mismatch: got ${gpuData.length}, expected ${referenceData.length}`
-            };
-        }
-
-        let maxError = 0;
-        let totalError = 0;
-
-        for (let i = 0; i < referenceData.length; i++) {
-            const error = Math.abs(gpuData[i] - referenceData[i]);
-            if (error > maxError) {
-                maxError = error;
-            }
-            totalError += error;
-        }
-
-        const meanError = referenceData.length > 0 ? totalError / referenceData.length : 0;
-        const passed = maxError <= tolerance;
-
-        return {
-            passed,
-            maxError,
-            meanError,
-            tolerance,
-            message: passed
-                ? `Validation passed (max error ${maxError.toExponential(3)})`
-                : `Max error ${maxError.toExponential(3)} exceeds tolerance ${tolerance}`
-        };
+        return this.validateOutput(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.CONVOLUTION);
     }
 
     getMetadata() {

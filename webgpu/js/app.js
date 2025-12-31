@@ -1,4 +1,3 @@
-// WebGPU audio benchmark harness.
 import { NoOpBenchmark } from './benchmarks/NoOpBenchmark.js';
 import { GainBenchmark } from './benchmarks/GainBenchmark.js';
 import { GainStatsBenchmark } from './benchmarks/GainStatsBenchmark.js';
@@ -15,18 +14,13 @@ import { FDTD3DBenchmark } from './benchmarks/FDTD3DBenchmark.js';
 import { Statistics } from './core/Statistics.js';
 import { ParameterBuilder } from './core/ParameterBuilder.js';
 
-// Constants for better code readability
 const CONSTANTS = {
-    // Suite mode runs all benchmarks sequentially. To prevent browser
-    // unresponsiveness (especially on slower devices), we cap iterations
-    // at 25 regardless of user settings. Individual benchmark runs can
-    // still use higher iteration counts (default 100) for detailed analysis.
     SUITE_MAX_ITERATIONS: 25,
 
-    DEFAULT_CHART_BINS: 30,          // Number of histogram bins
-    BYTES_PER_FLOAT: 4,              // Size of float32 in bytes
-    MS_TO_SECONDS: 1000,             // Milliseconds to seconds conversion
-    BYTES_TO_GB: 1024 * 1024 * 1024  // Bytes to gigabytes conversion
+    DEFAULT_CHART_BINS: 30,
+    BYTES_PER_FLOAT: 4,
+    MS_TO_SECONDS: 1000,
+    BYTES_TO_GB: 1024 * 1024 * 1024
 };
 
 class WebGPUBenchmarkApp {
@@ -42,6 +36,12 @@ class WebGPUBenchmarkApp {
         this.suiteResults = new Map();
         this.benchmarkParameters = new Map();
         this.benchmarkFactory = this.initializeBenchmarkFactory();
+        this.quietMode = false;
+    }
+    log(...args) {
+        if (!this.quietMode) {
+            console.log(...args);
+        }
     }
 
     initializeBenchmarkCategories() {
@@ -75,7 +75,6 @@ class WebGPUBenchmarkApp {
             ]
         };
     }
-
     initializeBenchmarkFactory() {
         return {
             'noop': (device, config) => new NoOpBenchmark(device, config.bufferSize, config.trackCount),
@@ -97,18 +96,15 @@ class WebGPUBenchmarkApp {
             'datacopy9901': (device, config) => new DataTransferBenchmark(device, 0.99, 0.01, config.bufferSize, config.trackCount)
         };
     }
-
     async initialize() {
         try {
             console.log('Initializing WebGPU Audio Benchmark Suite...');
 
-            // Check WebGPU support
             if (!navigator.gpu) {
                 this.showWebGPUError('WebGPU is not supported in this browser');
                 return false;
             }
 
-            // Request adapter
             this.adapter = await navigator.gpu.requestAdapter({
                 powerPreference: 'high-performance'
             });
@@ -118,13 +114,20 @@ class WebGPUBenchmarkApp {
                 return false;
             }
 
-            // Request device
             this.device = await this.adapter.requestDevice();
 
             if (!this.device) {
                 this.showWebGPUError('Failed to create WebGPU device');
                 return false;
             }
+
+            this.device.lost.then((info) => {
+                console.error('WebGPU device lost:', info);
+                const reason = info?.message || info?.reason || 'Unknown reason';
+                this.showWebGPUError(
+                    `WebGPU device lost: ${reason}. Reload the page and close other GPU-heavy tabs if the issue persists.`
+                );
+            });
 
             console.log('WebGPU initialized successfully');
             console.log('Adapter info:', {
@@ -147,39 +150,32 @@ class WebGPUBenchmarkApp {
             return false;
         }
     }
-
     showWebGPUError(message) {
         const alert = document.getElementById('webgpu-alert');
         const alertContent = alert.querySelector('strong').nextSibling;
         alertContent.textContent = ` ${message}`;
         alert.style.display = 'block';
     }
-
     hideWebGPUError() {
         const alert = document.getElementById('webgpu-alert');
         alert.style.display = 'none';
     }
-
     setupBenchmarkUI() {
-        // Setup category dropdown listener to update cards when category changes
         const categorySelect = document.getElementById('benchmark-category');
         categorySelect.addEventListener('sl-change', (event) => {
             this.renderBenchmarkCards(event.target.value);
             this.updateRunAllButton(event.target.value);
         });
 
-        // Setup run all button to run all benchmarks in selected category
         const runAllButton = document.getElementById('run-all-category');
         runAllButton.addEventListener('click', () => {
             const category = categorySelect.value;
             this.runBenchmarkSuite(category);
         });
 
-        // Render initial cards for default category
         this.renderBenchmarkCards('basic');
         this.updateRunAllButton('basic');
     }
-
     updateRunAllButton(category) {
         const runAllButton = document.getElementById('run-all-category');
         const benchmarks = this.benchmarkCategories[category] || [];
@@ -188,22 +184,18 @@ class WebGPUBenchmarkApp {
 
         const categoryName = document.querySelector(`sl-option[value="${category}"]`)?.textContent || category;
 
-        // Clear existing content safely
         while (runAllButton.firstChild) {
             runAllButton.removeChild(runAllButton.firstChild);
         }
 
-        // Add icon safely
         const icon = document.createElement('sl-icon');
         icon.slot = 'prefix';
         icon.name = 'play-circle';
         runAllButton.appendChild(icon);
 
-        // Add text content safely
         const textNode = document.createTextNode(`Run All ${categoryName} (${benchmarks.length})`);
         runAllButton.appendChild(textNode);
     }
-
     async runBenchmarkSuite(category) {
         if (this.isRunningSuite) return;
 
@@ -213,7 +205,6 @@ class WebGPUBenchmarkApp {
         this.isRunningSuite = true;
         this.suiteResults.clear();
 
-        // Show progress UI
         const progressContainer = document.getElementById('suite-progress');
         const progressBar = document.getElementById('suite-progress-bar');
         const statusText = document.getElementById('suite-status');
@@ -221,7 +212,6 @@ class WebGPUBenchmarkApp {
         progressContainer.style.display = 'block';
         progressBar.value = 0;
 
-        // Disable controls
         document.getElementById('run-all-category').disabled = true;
         document.getElementById('benchmark-category').disabled = true;
 
@@ -229,25 +219,19 @@ class WebGPUBenchmarkApp {
             for (let i = 0; i < benchmarks.length; i++) {
                 const benchmark = benchmarks[i];
 
-                // Update status
                 statusText.textContent = `Running ${benchmark.name} (${i + 1}/${benchmarks.length})...`;
 
-                // Select the benchmark to show its UI
                 this.selectBenchmark(benchmark.id);
 
-                // Run the actual benchmark
                 await this.runBenchmarkForSuite(benchmark.id);
 
-                // Update progress
                 progressBar.value = ((i + 1) / benchmarks.length) * 100;
 
-                // Small delay to show progress
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             statusText.textContent = `Completed all ${benchmarks.length} benchmarks in category!`;
 
-            // Hide progress after a delay
             setTimeout(() => {
                 progressContainer.style.display = 'none';
             }, 2000);
@@ -258,26 +242,20 @@ class WebGPUBenchmarkApp {
         } finally {
             this.isRunningSuite = false;
 
-            // Re-enable controls
             document.getElementById('run-all-category').disabled = false;
             document.getElementById('benchmark-category').disabled = false;
             this.updateRunAllButton(category);
         }
     }
-
     async runBenchmarkForSuite(benchmarkId) {
-        console.log(`Running benchmark: ${benchmarkId}`);
-
         try {
             const config = this.getConfiguration(benchmarkId);
+            this.log(`Running benchmark: ${benchmarkId}`);
 
-            // Suite mode caps iterations to prevent browser hangs
             config.iterations = Math.min(config.iterations, CONSTANTS.SUITE_MAX_ITERATIONS);
 
-            // Execute benchmark using common helper
             const { benchmark, results } = await this._executeBenchmark(benchmarkId, config);
 
-            // Store results for the suite
             this.suiteResults.set(benchmarkId, {
                 median: results.statistics.median,
                 p95: results.statistics.p95,
@@ -287,7 +265,6 @@ class WebGPUBenchmarkApp {
                 timestamp: new Date().toISOString()
             });
 
-            // Cleanup benchmark in suite mode (we don't need to keep it around)
             if (benchmark && typeof benchmark.cleanup === 'function') {
                 try {
                     benchmark.cleanup();
@@ -304,12 +281,10 @@ class WebGPUBenchmarkApp {
             });
         }
     }
-
     renderBenchmarkCards(category) {
         const cardsContainer = document.getElementById('benchmark-cards');
         const benchmarks = this.benchmarkCategories[category] || [];
 
-        // Clear container safely
         while (cardsContainer.firstChild) {
             cardsContainer.removeChild(cardsContainer.firstChild);
         }
@@ -319,18 +294,15 @@ class WebGPUBenchmarkApp {
             card.className = 'benchmark-card';
             card.dataset.benchmarkId = benchmark.id;
 
-            // Create icon element safely
             const iconDiv = document.createElement('div');
             iconDiv.className = 'benchmark-icon';
             iconDiv.textContent = benchmark.icon;
             card.appendChild(iconDiv);
 
-            // Create title element safely
             const title = document.createElement('h4');
             title.textContent = benchmark.name;
             card.appendChild(title);
 
-            // Create description element safely
             const description = document.createElement('p');
             description.textContent = benchmark.description;
             card.appendChild(description);
@@ -342,14 +314,11 @@ class WebGPUBenchmarkApp {
             cardsContainer.appendChild(card);
         });
     }
-
     selectBenchmark(benchmarkId) {
-        // Remove previous selection
         document.querySelectorAll('.benchmark-card').forEach(card => {
             card.classList.remove('selected');
         });
 
-        // Add selection to clicked card
         const selectedCard = document.querySelector(`[data-benchmark-id="${benchmarkId}"]`);
         if (selectedCard) {
             selectedCard.classList.add('selected');
@@ -358,7 +327,6 @@ class WebGPUBenchmarkApp {
         this.selectedBenchmark = benchmarkId;
         this.showBenchmarkContent(benchmarkId);
     }
-
     createElement(tag, attributes = {}, children = []) {
         const element = document.createElement(tag);
 
@@ -384,27 +352,21 @@ class WebGPUBenchmarkApp {
 
         return element;
     }
-
     showBenchmarkContent(benchmarkId) {
         const contentArea = document.getElementById('benchmark-content');
 
-        // Clear existing content safely
         while (contentArea.firstChild) {
             contentArea.removeChild(contentArea.firstChild);
         }
 
-        // Create title
         const title = this.createElement('h3', { textContent: `${this.getBenchmarkName(benchmarkId)} Benchmark` });
         contentArea.appendChild(title);
 
-        // Create description
         const description = this.createElement('p', { textContent: this.getBenchmarkDescription(benchmarkId) });
         contentArea.appendChild(description);
 
-        // Create controls container
         const controlsDiv = this.createElement('div', { className: 'benchmark-controls' });
 
-        // Create run button
         const runButton = this.createElement('sl-button', {
             id: `run-${benchmarkId}`,
             variant: 'primary',
@@ -415,7 +377,6 @@ class WebGPUBenchmarkApp {
         ]);
         controlsDiv.appendChild(runButton);
 
-        // Create export button
         const exportButton = this.createElement('sl-button', {
             id: `export-${benchmarkId}`,
             variant: 'default',
@@ -428,30 +389,24 @@ class WebGPUBenchmarkApp {
 
         contentArea.appendChild(controlsDiv);
 
-        // Add parameter controls if they exist
         const parameterControlsDOM = this.createParameterControlsDOM(benchmarkId);
         if (parameterControlsDOM) {
             contentArea.appendChild(parameterControlsDOM);
         }
 
-        // Create results section
         const resultsDiv = this.createElement('div', {
             id: `${benchmarkId}-results`,
             className: 'results-section',
             style: { display: 'none' }
         });
 
-        // Create sl-card for results
         const resultsCard = this.createElement('sl-card');
 
-        // Create header
         const headerDiv = this.createElement('div', { slot: 'header', textContent: 'Results' });
         resultsCard.appendChild(headerDiv);
 
-        // Create stats grid
         const statsGrid = this.createElement('div', { className: 'stats-grid' });
 
-        // Create stat items
         const statItems = [
             { label: 'Median:', id: `${benchmarkId}-median` },
             { label: 'P95:', id: `${benchmarkId}-p95` },
@@ -469,7 +424,6 @@ class WebGPUBenchmarkApp {
 
         resultsCard.appendChild(statsGrid);
 
-        // Create canvas for chart
         const canvas = this.createElement('canvas', {
             id: `${benchmarkId}-chart`,
             width: '600',
@@ -482,17 +436,14 @@ class WebGPUBenchmarkApp {
 
         contentArea.style.display = 'block';
 
-        // Add event listener for the run button
         document.getElementById(`run-${benchmarkId}`).addEventListener('click', () => {
             this.runBenchmark(benchmarkId);
         });
 
-        // Add event listener for the export button
         document.getElementById(`export-${benchmarkId}`).addEventListener('click', () => {
             this.exportResults(benchmarkId);
         });
 
-        // Setup parameter controls if they exist
         const params = this.getBenchmarkParameters(benchmarkId);
         if (params.length > 0) {
             const existingParams = this.benchmarkParameters.get(benchmarkId);
@@ -506,7 +457,6 @@ class WebGPUBenchmarkApp {
             this.setupParameterListeners(benchmarkId);
         }
     }
-
     getBenchmarkName(benchmarkId) {
         for (const category of Object.values(this.benchmarkCategories)) {
             const benchmark = category.find(b => b.id === benchmarkId);
@@ -514,7 +464,6 @@ class WebGPUBenchmarkApp {
         }
         return benchmarkId;
     }
-
     getBenchmarkDescription(benchmarkId) {
         for (const category of Object.values(this.benchmarkCategories)) {
             const benchmark = category.find(b => b.id === benchmarkId);
@@ -522,22 +471,18 @@ class WebGPUBenchmarkApp {
         }
         return 'No description available.';
     }
-
     setupThemeToggle() {
         const themeToggle = document.getElementById('theme-toggle');
 
-        // Load saved theme or default to light
         const savedTheme = localStorage.getItem('webgpu-benchmark-theme') || 'light';
         this.setTheme(savedTheme);
 
-        // Setup toggle event listener
         themeToggle.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             this.setTheme(newTheme);
         });
     }
-
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('webgpu-benchmark-theme', theme);
@@ -548,20 +493,16 @@ class WebGPUBenchmarkApp {
             themeToggle.label = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
         }
     }
-
     populateHardwareInfo() {
-        // GPU Adapter Information
         if (this.adapter?.info) {
             document.getElementById('gpu-vendor').textContent = this.adapter.info.vendor || 'Unknown';
             document.getElementById('gpu-architecture').textContent = this.adapter.info.architecture || 'Unknown';
             document.getElementById('gpu-device').textContent = this.adapter.info.device || 'Unknown';
         }
 
-        // WebGPU Capabilities
         if (this.device?.limits) {
             const limits = this.device.limits;
 
-            // Format large numbers with units
             const formatBytes = (bytes) => {
                 if (bytes >= 1024 * 1024 * 1024) {
                     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
@@ -583,12 +524,10 @@ class WebGPUBenchmarkApp {
                 limits.maxStorageBufferBindingSize ? formatBytes(limits.maxStorageBufferBindingSize) : 'Unknown';
         }
 
-        // Browser Information
         const userAgent = navigator.userAgent;
         const browserInfo = this.getBrowserInfo(userAgent);
         document.getElementById('user-agent').textContent = browserInfo;
     }
-
     getBrowserInfo(userAgent) {
         if (userAgent.includes('Chrome')) {
             const match = userAgent.match(/Chrome\/(\d+)/);
@@ -605,7 +544,6 @@ class WebGPUBenchmarkApp {
         }
         return 'Unknown browser';
     }
-
     getBenchmarkParameters(benchmarkId) {
         const paramConfigs = {
             gainstats: [
@@ -617,14 +555,13 @@ class WebGPUBenchmarkApp {
             fft: ParameterBuilder.fftParams(),
             randommemory: ParameterBuilder.memoryParams(),
             modalfilterbank: ParameterBuilder.modalParams(),
-            dwg1dnaive: ParameterBuilder.waveguideParams(100, null), // No acceleration option
-            dwg1daccel: ParameterBuilder.waveguideParams(100, true),  // With acceleration option
+            dwg1dnaive: ParameterBuilder.waveguideParams(100, null),
+            dwg1daccel: ParameterBuilder.waveguideParams(100, true),
             fdtd3d: ParameterBuilder.fdtdParams()
         };
 
         return paramConfigs[benchmarkId] || [];
     }
-
     getBenchmarkParameterValues(benchmarkId) {
         const params = this.getBenchmarkParameters(benchmarkId);
         if (!params || params.length === 0) {
@@ -663,22 +600,18 @@ class WebGPUBenchmarkApp {
 
         return values;
     }
-
     createParameterControlsDOM(benchmarkId) {
         const params = this.getBenchmarkParameters(benchmarkId);
         if (!params || params.length === 0) return null;
 
-        // Create sl-details container
         const details = this.createElement('sl-details', {
             summary: 'Advanced Parameters',
             className: 'advanced-params',
             open: 'true'
         });
 
-        // Create parameter grid
         const parameterGrid = this.createElement('div', { className: 'parameter-grid' });
 
-        // Add parameter controls
         params.forEach(param => {
             const control = this.createParameterControlDOM(benchmarkId, param);
             if (control) {
@@ -688,10 +621,8 @@ class WebGPUBenchmarkApp {
 
         details.appendChild(parameterGrid);
 
-        // Create parameter actions
         const actionsDiv = this.createElement('div', { className: 'parameter-actions' });
 
-        // Reset button
         const resetButton = this.createElement('sl-button', {
             id: `reset-params-${benchmarkId}`,
             variant: 'outline',
@@ -702,7 +633,6 @@ class WebGPUBenchmarkApp {
         ]);
         actionsDiv.appendChild(resetButton);
 
-        // Load preset button
         const loadButton = this.createElement('sl-button', {
             id: `load-preset-${benchmarkId}`,
             variant: 'outline',
@@ -713,7 +643,6 @@ class WebGPUBenchmarkApp {
         ]);
         actionsDiv.appendChild(loadButton);
 
-        // Save preset button
         const saveButton = this.createElement('sl-button', {
             id: `save-preset-${benchmarkId}`,
             variant: 'outline',
@@ -728,7 +657,6 @@ class WebGPUBenchmarkApp {
 
         return details;
     }
-
     createParameterControlDOM(benchmarkId, param) {
         const paramId = `${benchmarkId}-${param.id}`;
         const unit = param.unit ? ` ${param.unit}` : '';
@@ -791,13 +719,10 @@ class WebGPUBenchmarkApp {
 
         return controlDiv;
     }
-
     generateParameterControls(benchmarkId) {
-        // This method is deprecated - keeping for backward compatibility
-        // Returns empty string since we now use DOM methods
+        // Deprecated: kept for backward compatibility.
         return '';
     }
-
     createParameterControl(benchmarkId, param) {
         const paramId = `${benchmarkId}-${param.id}`;
         const unit = param.unit ? ` ${param.unit}` : '';
@@ -843,7 +768,6 @@ class WebGPUBenchmarkApp {
                 return '';
         }
     }
-
     setupParameterListeners(benchmarkId) {
         const params = this.getBenchmarkParameters(benchmarkId);
 
@@ -851,7 +775,6 @@ class WebGPUBenchmarkApp {
             const element = document.getElementById(`${benchmarkId}-${param.id}`);
             if (!element) return;
 
-            // Handle different control types
             if (param.type === 'slider') {
                 element.addEventListener('sl-input', (event) => {
                     const suffixElement = element.querySelector('[slot="suffix"]');
@@ -877,7 +800,6 @@ class WebGPUBenchmarkApp {
             }
         });
 
-        // Setup action buttons
         const resetButton = document.getElementById(`reset-params-${benchmarkId}`);
         if (resetButton) {
             resetButton.addEventListener('click', () => this.resetParametersToDefaults(benchmarkId));
@@ -893,7 +815,6 @@ class WebGPUBenchmarkApp {
             saveButton.addEventListener('click', () => this.showPresetSaver(benchmarkId));
         }
     }
-
     updateParameterValue(benchmarkId, paramId, value) {
         if (!this.benchmarkParameters.has(benchmarkId)) {
             this.benchmarkParameters.set(benchmarkId, new Map());
@@ -901,12 +822,10 @@ class WebGPUBenchmarkApp {
 
         this.benchmarkParameters.get(benchmarkId).set(paramId, value);
 
-        // Save to localStorage for persistence
         this.saveParametersToStorage(benchmarkId);
 
         console.log(`Parameter updated: ${benchmarkId}.${paramId} = ${value}`);
     }
-
     hasStoredParameters(benchmarkId) {
         try {
             return localStorage.getItem(`webgpu-benchmark-params-${benchmarkId}`) !== null;
@@ -915,7 +834,6 @@ class WebGPUBenchmarkApp {
             return false;
         }
     }
-
     resetParametersToDefaults(benchmarkId) {
         const params = this.getBenchmarkParameters(benchmarkId);
 
@@ -939,7 +857,6 @@ class WebGPUBenchmarkApp {
             this.updateParameterValue(benchmarkId, param.id, param.default);
         });
     }
-
     saveParametersToStorage(benchmarkId) {
         const params = this.benchmarkParameters.get(benchmarkId);
         if (params) {
@@ -951,7 +868,6 @@ class WebGPUBenchmarkApp {
             }
         }
     }
-
     loadParametersFromStorage(benchmarkId) {
         const stored = localStorage.getItem(`webgpu-benchmark-params-${benchmarkId}`);
         if (stored) {
@@ -960,14 +876,12 @@ class WebGPUBenchmarkApp {
                 const paramMap = new Map(Object.entries(paramObj));
                 this.benchmarkParameters.set(benchmarkId, paramMap);
 
-                // Apply loaded values to UI
                 this.applyParametersToUI(benchmarkId, paramMap);
             } catch (error) {
                 console.warn(`Failed to load parameters for ${benchmarkId}:`, error);
             }
         }
     }
-
     applyParametersToUI(benchmarkId, paramMap) {
         const params = this.getBenchmarkParameters(benchmarkId);
 
@@ -991,31 +905,27 @@ class WebGPUBenchmarkApp {
             }
         });
     }
-
     showPresetLoader(benchmarkId) {
-    alert('Preset loading feature coming soon!');
+        alert('Preset loading feature coming soon!');
     }
-
     showPresetSaver(benchmarkId) {
-    alert('Preset saving feature coming soon!');
+        alert('Preset saving feature coming soon!');
     }
-
     setupEventListeners() {
-        // Event listeners are dynamically added when benchmarks are selected
-        // in the showBenchmarkContent method for the card-based UI.
         console.log('Event listeners will be added dynamically for selected benchmarks');
     }
-
     getConfiguration(benchmarkId) {
+        this.quietMode = Boolean(document.getElementById('quiet-mode')?.checked);
+
         return {
             bufferSize: parseInt(document.getElementById('buffer-size').value) || 512,
             trackCount: parseInt(document.getElementById('track-count').value) || 128,
             iterations: parseInt(document.getElementById('iterations').value) || 100,
             warmup: parseInt(document.getElementById('warmup').value) || 3,
-            parameters: this.getBenchmarkParameterValues(benchmarkId)
+            parameters: this.getBenchmarkParameterValues(benchmarkId),
+            quiet: this.quietMode
         };
     }
-
     async _executeBenchmark(benchmarkId, config) {
         const benchmarkCreator = this.benchmarkFactory[benchmarkId];
         if (!benchmarkCreator) {
@@ -1023,11 +933,13 @@ class WebGPUBenchmarkApp {
         }
 
         const benchmark = benchmarkCreator(this.device, config);
+        if (typeof benchmark.setQuiet === 'function') {
+            benchmark.setQuiet(config.quiet);
+        }
         const results = await benchmark.runBenchmark(config.iterations, config.warmup);
 
         return { benchmark, results };
     }
-
     async runBenchmark(benchmarkType) {
         if (!this.isInitialized) {
             console.error('WebGPU not initialized');
@@ -1039,15 +951,13 @@ class WebGPUBenchmarkApp {
         const exportButton = document.getElementById(`export-${benchmarkType}`);
 
         try {
-            // Update UI state
             runButton.loading = true;
             runButton.disabled = true;
             exportButton.disabled = true;
             this.hideResults(benchmarkType);
 
-            console.log(`Starting ${benchmarkType} benchmark with config:`, config);
+            this.log(`Starting ${benchmarkType} benchmark with config:`, config);
 
-            // Cleanup previous benchmark if exists
             if (this.currentBenchmark && typeof this.currentBenchmark.cleanup === 'function') {
                 try {
                     this.currentBenchmark.cleanup();
@@ -1056,37 +966,29 @@ class WebGPUBenchmarkApp {
                 }
             }
 
-            // Execute benchmark using common helper
             const { benchmark, results } = await this._executeBenchmark(benchmarkType, config);
 
-            // Store benchmark instance for export functionality
             this.currentBenchmark = benchmark;
 
-            // Display results
             this.displayResults(benchmarkType, results);
 
-            // Enable export
             exportButton.disabled = false;
 
-            console.log(`${benchmarkType} benchmark completed successfully`);
+            this.log(`${benchmarkType} benchmark completed successfully`);
 
         } catch (error) {
             console.error(`${benchmarkType} benchmark failed:`, error);
             this.showError(benchmarkType, error.message);
         } finally {
-            // Reset UI state
             runButton.loading = false;
             runButton.disabled = false;
         }
     }
-
     displayResults(benchmarkType, results) {
         const resultsSection = document.getElementById(`${benchmarkType}-results`);
 
-        // Show results section
         resultsSection.style.display = 'block';
 
-        // Update statistics
         const stats = results.statistics;
         document.getElementById(`${benchmarkType}-median`).textContent =
             Statistics.formatTime(stats.median);
@@ -1097,44 +999,35 @@ class WebGPUBenchmarkApp {
         document.getElementById(`${benchmarkType}-min`).textContent =
             Statistics.formatTime(stats.min);
 
-        // Update validation and metadata info
         this.updateValidationAndMetadata(benchmarkType, results);
 
-        // Create or update chart
         this.updateChart(benchmarkType, results);
     }
-
     updateValidationAndMetadata(benchmarkType, results) {
         if (!results.validation) return;
 
-        // Update validation status
         const validationEl = document.getElementById(`${benchmarkType}-validation`);
         if (validationEl) {
             validationEl.textContent = results.validation.passed ? 'PASSED' : 'FAILED';
             validationEl.className = `stat-value ${results.validation.passed ? 'success' : 'error'}`;
         }
 
-        // Update max error (for gain and other precision benchmarks)
         const maxErrorEl = document.getElementById(`${benchmarkType}-max-error`);
         if (maxErrorEl && results.validation.maxError !== undefined) {
             maxErrorEl.textContent = results.validation.maxError.toExponential(3);
         }
 
-        // Update metadata displays
         if (results.metadata) {
-            // Data size info (for datacopy benchmarks)
             const datasizeEl = document.getElementById(`${benchmarkType}-datasize`);
             if (datasizeEl && results.metadata.total_mb !== undefined) {
                 datasizeEl.textContent = `${results.metadata.total_mb.toFixed(2)} MB`;
             }
 
-            // Memory size info (for random memory benchmark)
             const memsizeEl = document.getElementById(`${benchmarkType}-memsize`);
             if (memsizeEl && results.metadata.sample_memory_mb !== undefined) {
                 memsizeEl.textContent = `${results.metadata.sample_memory_mb.toFixed(1)} MB`;
             }
 
-            // Bandwidth calculation (for random memory benchmark)
             const bandwidthEl = document.getElementById(`${benchmarkType}-bandwidth`);
             if (bandwidthEl && benchmarkType === 'randommemory' && results.metadata.total_samples) {
                 const bytesRead = results.metadata.total_samples * CONSTANTS.BYTES_PER_FLOAT;
@@ -1145,9 +1038,7 @@ class WebGPUBenchmarkApp {
             }
         }
     }
-
     updateChart(benchmarkType, results) {
-        // Check if Chart.js is available
         if (typeof Chart === 'undefined') {
             console.warn('Chart.js not available, skipping chart creation');
             return;
@@ -1156,28 +1047,30 @@ class WebGPUBenchmarkApp {
         const canvas = document.getElementById(`${benchmarkType}-chart`);
         const ctx = canvas.getContext('2d');
 
-        // Destroy existing chart if it exists
         if (this.charts.has(benchmarkType)) {
             this.charts.get(benchmarkType).destroy();
         }
 
-        // Prepare data for histogram
         const histogram = Statistics.histogram(results.latencies, CONSTANTS.DEFAULT_CHART_BINS);
+        if (!histogram.counts.length) {
+            console.warn('No latency data available for histogram.');
+            return;
+        }
 
-        // Calculate reasonable y-axis maximum (cap very tall bins)
         const maxCount = Math.max(...histogram.counts);
         const avgCount = histogram.counts.reduce((sum, count) => sum + count, 0) / histogram.counts.length;
         const sortedCounts = [...histogram.counts].sort((a, b) => b - a);
         const secondHighest = sortedCounts[1] || 0;
 
-        // Cap at the smaller of: 3x average, 2x second highest, or 20% of max
-        const yAxisMax = Math.min(
-            maxCount * 0.2,      // 20% of absolute max
-            avgCount * 3,        // 3x average
-            secondHighest * 2    // 2x second highest bin
+        let yAxisMax = Math.min(
+            maxCount * 0.2,
+            avgCount * 3,
+            secondHighest * 2
         );
+        if (histogram.counts.length === 1 || yAxisMax <= 0) {
+            yAxisMax = maxCount;
+        }
 
-        // Create new chart
         const chart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1222,7 +1115,6 @@ class WebGPUBenchmarkApp {
                         ticks: {
                             maxRotation: 45,
                             callback: function(value, index) {
-                                // Show every other label to reduce clutter
                                 return index % 2 === 0 ? this.getLabelForValue(value) : '';
                             }
                         }
@@ -1236,7 +1128,6 @@ class WebGPUBenchmarkApp {
                         max: yAxisMax,
                         ticks: {
                             callback: function(value) {
-                                // Show whole numbers only
                                 return Number.isInteger(value) ? value : '';
                             }
                         }
@@ -1247,19 +1138,14 @@ class WebGPUBenchmarkApp {
 
         this.charts.set(benchmarkType, chart);
     }
-
     hideResults(benchmarkType) {
         const resultsSection = document.getElementById(`${benchmarkType}-results`);
         resultsSection.style.display = 'none';
     }
-
     showError(benchmarkType, message) {
-        // For now, just log to console and show an alert
-        // In a production app, you'd want better error UI
         console.error(`${benchmarkType} error:`, message);
-    alert(`${benchmarkType} benchmark failed: ${message}`);
+        alert(`${benchmarkType} benchmark failed: ${message}`);
     }
-
     exportResults(benchmarkType) {
         if (!this.currentBenchmark || !this.currentBenchmark.getResults()) {
             console.error('No results to export');
@@ -1279,16 +1165,13 @@ class WebGPUBenchmarkApp {
     }
 }
 
-// Initialize the application when the page loads
 document.addEventListener('DOMContentLoaded', async () => {
-    // Simple Chart.js availability check
     if (typeof Chart === 'undefined') {
         console.warn('Chart.js not loaded - charts will be disabled');
     }
 
     const app = new WebGPUBenchmarkApp();
 
-    // Initialize WebGPU
     const initialized = await app.initialize();
 
     if (initialized) {

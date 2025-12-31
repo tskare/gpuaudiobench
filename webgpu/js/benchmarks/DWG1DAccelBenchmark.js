@@ -1,5 +1,3 @@
-// DWG1DAccel Benchmark - Optimized digital waveguide synthesis
-
 import { DWG1DNaiveBenchmark } from './DWG1DNaiveBenchmark.js';
 
 export class DWG1DAccelBenchmark extends DWG1DNaiveBenchmark {

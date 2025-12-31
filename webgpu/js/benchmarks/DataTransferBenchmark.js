@@ -1,5 +1,3 @@
-// DataTransfer Benchmark - Measures data transfer overhead with different input/output ratios
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -13,7 +11,6 @@ export class DataTransferBenchmark extends GPUABenchmark {
         this.outputRatio = outputRatio;
         this.bufferManager = new BufferManager(device);
 
-        // Calculate actual buffer sizes
         const baseSize = this.bufferSize * this.trackCount;
         this.inputSize = Math.max(1, Math.floor(baseSize * inputRatio));
         this.outputSize = Math.max(1, Math.floor(baseSize * outputRatio));
@@ -42,7 +39,6 @@ export class DataTransferBenchmark extends GPUABenchmark {
     }
 
     async setupBuffers() {
-        // Create input buffer with random data
         const inputData = this.bufferManager.generateAudioTestData(this.inputSize, 'random');
         this.inputBuffer = this.createBuffer(
             'input',
@@ -51,18 +47,15 @@ export class DataTransferBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('input', inputData);
 
-        // Create output buffer
         this.outputBuffer = this.createBuffer(
             'output',
             this.outputSize * 4,
             GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         );
 
-        // Clear output buffer
         const zeros = new Float32Array(this.outputSize);
         this.writeBuffer('output', zeros);
 
-        // Create uniform buffer for parameters
         const paramsData = new ArrayBuffer(16); // 16 bytes for alignment
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.inputSize, true);     // input_size
@@ -77,35 +70,28 @@ export class DataTransferBenchmark extends GPUABenchmark {
         );
         this.device.queue.writeBuffer(this.paramsBuffer, 0, paramsData);
 
-        // Generate CPU reference for validation
         this.generateCPUReference(inputData);
     }
 
-    // Matches the GPU's per-thread accumulation logic
     generateCPUReference(inputData) {
         this.referenceData = new Float32Array(this.outputSize);
 
-        // Match GPU shader logic: divide work among threads
         const totalThreads = 64; // Must match @workgroup_size in shader
         const inputElementsPerThread = Math.ceil(this.inputSize / totalThreads);
         const outputElementsPerThread = Math.ceil(this.outputSize / totalThreads);
 
         for (let threadId = 0; threadId < totalThreads; threadId++) {
-            // Calculate this thread's input range
             const inputStart = threadId * inputElementsPerThread;
             const inputEnd = Math.min(inputStart + inputElementsPerThread, this.inputSize);
 
-            // Calculate this thread's output range
             const outputStart = threadId * outputElementsPerThread;
             const outputEnd = Math.min(outputStart + outputElementsPerThread, this.outputSize);
 
-            // Accumulate this thread's input partition
             let sum = 0.0;
             for (let i = inputStart; i < inputEnd; i++) {
                 sum += inputData[i];
             }
 
-            // Write this thread's output value
             const outputValue = sum * 0.000001;
             for (let i = outputStart; i < outputEnd; i++) {
                 this.referenceData[i] = outputValue;
@@ -141,7 +127,6 @@ export class DataTransferBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        // Use the standard compute pass execution helper
         await this.executeComputePass(1, 1, 1);
     }
 

@@ -1,12 +1,10 @@
-// FFT Benchmark - Naive DFT workload mirroring native implementations
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
 
 export class FFTBenchmark extends GPUABenchmark {
     constructor(device, bufferSize = 512, trackCount = 128, options = {}) {
-    super(device, 'FFT', bufferSize, trackCount);
+        super(device, 'FFT', bufferSize, trackCount);
         this.bufferManager = new BufferManager(device);
 
         const fftCandidate = Number(options?.fftSize);
@@ -16,16 +14,13 @@ export class FFTBenchmark extends GPUABenchmark {
         this.inputData = null;
         this.referenceOutput = null;
     }
-
     async loadShader() {
         return this.loadShaderFromFile('js/shaders/fft.wgsl');
     }
-
     async setupBuffers() {
         const totalSamples = this.bufferSize * this.trackCount;
         const outputSamples = this.trackCount * this.outputSize * 2;
 
-        // Input buffer (real samples)
         this.inputData = this.bufferManager.generateAudioTestData(totalSamples, 'random');
         this.inputBuffer = this.createBuffer(
             'input',
@@ -34,7 +29,6 @@ export class FFTBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('input', this.inputData);
 
-        // Output buffer (complex interleaved)
         this.outputBuffer = this.createBuffer(
             'output',
             outputSamples * 4,
@@ -42,7 +36,6 @@ export class FFTBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(outputSamples));
 
-        // Parameters: buffer size, fft size, output size, track count
         const paramsData = new ArrayBuffer(16);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -59,7 +52,6 @@ export class FFTBenchmark extends GPUABenchmark {
 
         this.generateCPUReference();
     }
-
     generateCPUReference() {
         const outputSamples = this.trackCount * this.outputSize * 2;
         this.referenceOutput = new Float32Array(outputSamples);
@@ -87,7 +79,6 @@ export class FFTBenchmark extends GPUABenchmark {
             }
         }
     }
-
     async createBindGroups() {
         this.bindGroup = this.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
@@ -99,18 +90,14 @@ export class FFTBenchmark extends GPUABenchmark {
             label: 'FFT Bind Group'
         });
     }
-
     async performIteration() {
-        // Workgroup size is 64, dispatch enough workgroups to cover all tracks
         const workgroups = Math.ceil(this.trackCount / 64);
         await this.executeComputePass(workgroups, 1, 1);
     }
-
     async validate() {
         const gpuOutput = await this.readBuffer('output');
         return this.validateOutput(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.FFT_OPERATIONS);
     }
-
     getMetadata() {
         return {
             ...super.getMetadata?.() || {},
@@ -126,7 +113,6 @@ export class FFTBenchmark extends GPUABenchmark {
             operations_per_fft: this.fftSize * this.outputSize * 4 // approximate (2 mul-adds per complex component)
         };
     }
-
     cleanup() {
         super.cleanup();
         this.bufferManager.destroyAll();

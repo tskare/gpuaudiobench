@@ -1,5 +1,3 @@
-// FDTD3D Benchmark - 3D finite-difference time-domain acoustic simulation
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -12,7 +10,7 @@ export class FDTD3DBenchmark extends GPUABenchmark {
     // performance in browser environments. FDTD is extremely memory and compute
     // intensive - full spec parameters can cause browser unresponsiveness.
     constructor(device, bufferSize = 256, trackCount = 4, options = {}) {
-    super(device, 'FDTD3D', bufferSize, trackCount);
+        super(device, 'FDTD3D', bufferSize, trackCount);
         this.bufferManager = new BufferManager(device);
 
         this.gridSize = {
@@ -42,6 +40,7 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         this.velocityYCPU = null;
         this.velocityZCPU = null;
         this.referenceOutput = null;
+        this.sampleIndexSourceBuffer = null;
     }
 
     clampDimension(value) {
@@ -67,7 +66,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         }
         return receivers;
     }
-
     async setup() {
         if (this.isSetup) {
             return;
@@ -146,7 +144,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
             GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         );
 
-        // Input audio (track-major layout)
         this.inputAudio = new Float32Array(this.trackCount * this.bufferSize);
         for (let track = 0; track < this.trackCount; track++) {
             for (let i = 0; i < this.bufferSize; i++) {
@@ -161,7 +158,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('input_audio', this.inputAudio);
 
-        // Output audio buffer
         this.outputBuffer = this.createBuffer(
             'output',
             this.trackCount * this.bufferSize * 4,
@@ -169,7 +165,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(this.trackCount * this.bufferSize));
 
-        // Receiver positions buffer (vec4<u32> for alignment)
         const receiverData = new Uint32Array(this.trackCount * 4);
         this.receiverPositions.forEach((pos, index) => {
             const base = index * 4;
@@ -185,14 +180,22 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         );
         this.device.queue.writeBuffer(this.receiverBuffer, 0, receiverData);
 
-        // Sample index buffer (u32)
         this.sampleIndexBuffer = this.createBuffer(
             'sample_index',
             4,
             GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         );
+        const sampleIndexData = new Uint32Array(this.bufferSize);
+        for (let i = 0; i < this.bufferSize; i++) {
+            sampleIndexData[i] = i;
+        }
+        this.sampleIndexSourceBuffer = this.createBuffer(
+            'sample_index_source',
+            sampleIndexData.byteLength,
+            GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+        );
+        this.writeBuffer('sample_index_source', sampleIndexData);
 
-        // Parameter uniform
         const paramsData = new ArrayBuffer(64);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, nx, true);
@@ -286,7 +289,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
         const receiverIndices = this.receiverPositions.map(pos => index3D(pos.x, pos.y, pos.z));
 
         for (let step = 0; step < this.bufferSize; step++) {
-            // Update velocity X
             for (let z = 0; z < nz; z++) {
                 for (let y = 0; y < ny; y++) {
                     for (let x = 1; x < nx; x++) {
@@ -298,7 +300,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 }
             }
 
-            // Update velocity Y
             for (let z = 0; z < nz; z++) {
                 for (let y = 1; y < ny; y++) {
                     for (let x = 0; x < nx; x++) {
@@ -310,7 +311,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 }
             }
 
-            // Update velocity Z
             for (let z = 1; z < nz; z++) {
                 for (let y = 0; y < ny; y++) {
                     for (let x = 0; x < nx; x++) {
@@ -322,7 +322,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 }
             }
 
-            // Update pressure
             for (let z = 1; z < nz - 1; z++) {
                 for (let y = 1; y < ny - 1; y++) {
                     for (let x = 1; x < nx - 1; x++) {
@@ -340,7 +339,6 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 }
             }
 
-            // Apply simple absorbing boundary
             for (let z = 0; z < nz; z++) {
                 for (let y = 0; y < ny; y++) {
                     pressure[index3D(0, y, z)] *= (1 - this.absorption);
@@ -360,11 +358,9 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 }
             }
 
-            // Inject source using track 0 signal
             const sourceSample = this.inputAudio[step];
             pressure[sourceIndex] += sourceSample * 0.1;
 
-            // Extract outputs for each track
             for (let track = 0; track < this.trackCount; track++) {
                 output[track * this.bufferSize + step] = pressure[receiverIndices[track]];
             }
@@ -378,15 +374,16 @@ export class FDTD3DBenchmark extends GPUABenchmark {
     }
 
     resetStateBuffers() {
-        const zeroPressure = new Float32Array(this.gridSize.nx * this.gridSize.ny * this.gridSize.nz);
-        const zeroVx = new Float32Array((this.gridSize.nx + 1) * this.gridSize.ny * this.gridSize.nz);
-        const zeroVy = new Float32Array(this.gridSize.nx * (this.gridSize.ny + 1) * this.gridSize.nz);
-        const zeroVz = new Float32Array(this.gridSize.nx * this.gridSize.ny * (this.gridSize.nz + 1));
+        const zeroPressure = this.getZeroedArray('f32', this.gridSize.nx * this.gridSize.ny * this.gridSize.nz);
+        const zeroVx = this.getZeroedArray('f32', (this.gridSize.nx + 1) * this.gridSize.ny * this.gridSize.nz);
+        const zeroVy = this.getZeroedArray('f32', this.gridSize.nx * (this.gridSize.ny + 1) * this.gridSize.nz);
+        const zeroVz = this.getZeroedArray('f32', this.gridSize.nx * this.gridSize.ny * (this.gridSize.nz + 1));
+        const zeroOutput = this.getZeroedArray('f32', this.trackCount * this.bufferSize);
         this.writeBuffer('pressure', zeroPressure);
         this.writeBuffer('velocity_x', zeroVx);
         this.writeBuffer('velocity_y', zeroVy);
         this.writeBuffer('velocity_z', zeroVz);
-        this.writeBuffer('output', new Float32Array(this.trackCount * this.bufferSize));
+        this.writeBuffer('output', zeroOutput);
     }
 
     async performIteration() {
@@ -405,11 +402,18 @@ export class FDTD3DBenchmark extends GPUABenchmark {
             Math.ceil(nz / workgroupSize)
         ];
 
-        for (let step = 0; step < this.bufferSize; step++) {
-            const sampleIndexData = new Uint32Array([step]);
-            this.device.queue.writeBuffer(this.sampleIndexBuffer, 0, sampleIndexData);
+        const commandBuffers = [];
+        const batchSize = 8;
 
+        for (let step = 0; step < this.bufferSize; step++) {
             const encoder = this.device.createCommandEncoder();
+            encoder.copyBufferToBuffer(
+                this.sampleIndexSourceBuffer,
+                step * 4,
+                this.sampleIndexBuffer,
+                0,
+                4
+            );
 
             {
                 const pass = encoder.beginComputePass();
@@ -443,70 +447,24 @@ export class FDTD3DBenchmark extends GPUABenchmark {
                 pass.end();
             }
 
-            this.device.queue.submit([encoder.finish()]);
+            commandBuffers.push(encoder.finish());
+
+            if (commandBuffers.length >= batchSize) {
+                this.device.queue.submit(commandBuffers);
+                commandBuffers.length = 0;
+            }
         }
 
-        // Wait for all GPU work to complete before returning
-        // This ensures timing measurements include actual GPU execution time
+        if (commandBuffers.length > 0) {
+            this.device.queue.submit(commandBuffers);
+        }
+
         await this.device.queue.onSubmittedWorkDone();
     }
 
     async validate() {
         const gpuOutput = await this.readBuffer('output');
-        const metrics = this.calculateErrorMetrics(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.FDTD_SIMULATION);
-        return {
-            passed: metrics.passed,
-            maxError: metrics.maxError,
-            meanError: metrics.meanError,
-            tolerance: metrics.tolerance,
-            message: metrics.message
-        };
-    }
-
-    calculateErrorMetrics(gpuData, referenceData, tolerance) {
-        if (!referenceData) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: 'No reference data available'
-            };
-        }
-
-        if (gpuData.length !== referenceData.length) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: `Length mismatch: got ${gpuData.length}, expected ${referenceData.length}`
-            };
-        }
-
-        let maxError = 0;
-        let totalError = 0;
-
-        for (let i = 0; i < referenceData.length; i++) {
-            const error = Math.abs(gpuData[i] - referenceData[i]);
-            if (error > maxError) {
-                maxError = error;
-            }
-            totalError += error;
-        }
-
-        const meanError = referenceData.length > 0 ? totalError / referenceData.length : 0;
-        const passed = maxError <= tolerance;
-
-        return {
-            passed,
-            maxError,
-            meanError,
-            tolerance,
-            message: passed
-                ? `Validation passed (max error ${maxError.toExponential(3)})`
-                : `Max error ${maxError.toExponential(3)} exceeds tolerance ${tolerance}`
-        };
+        return this.validateOutput(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.FDTD_SIMULATION);
     }
 
     getMetadata() {

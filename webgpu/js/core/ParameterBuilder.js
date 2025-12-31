@@ -1,4 +1,3 @@
-// Helpers for building benchmark configuration controls.
 export class ParameterBuilder {
     static slider(id, label, min, max, defaultValue, step = 1, unit = '', description = '') {
         return {
@@ -13,7 +12,6 @@ export class ParameterBuilder {
             description
         };
     }
-
     static select(id, label, defaultValue, options, description = '') {
         return {
             id,
@@ -24,7 +22,6 @@ export class ParameterBuilder {
             description
         };
     }
-
     static switch(id, label, defaultValue, description = '') {
         return {
             id,
@@ -34,7 +31,6 @@ export class ParameterBuilder {
             description
         };
     }
-
     static filterParams(cutoffDefault = 1000, qDefault = 0.707) {
         return [
             this.select('filterType', 'Filter Type', 'butterworth', [
@@ -56,7 +52,6 @@ export class ParameterBuilder {
             ], 'Number of filter poles')
         ];
     }
-
     static convolutionParams(irLengthDefault = 512) {
         return [
             this.slider('irLength', 'Impulse Response Length', 64, 2048, irLengthDefault, 64, 'samples', 'Length of the convolution impulse response'),
@@ -71,7 +66,6 @@ export class ParameterBuilder {
             ], 'Window function for impulse response generation')
         ];
     }
-
     static fftParams(defaultSize = 1024) {
         const sizeOptions = [256, 512, 1024, 2048, 4096].map(value => ({ value, label: `${value}` }));
 
@@ -83,7 +77,6 @@ export class ParameterBuilder {
             this.select('fftSize', 'FFT Size', defaultSize, sizeOptions, 'Number of samples processed per transform (power-of-two recommended)')
         ];
     }
-
     static memoryParams(memorySizeDefault = 128, minLoopDefault = 1000, maxLoopDefault = 48000) {
         return [
             this.slider('sampleMemorySize', 'Sample Memory Size', 32, 512, memorySizeDefault, 16, 'MB', 'Size of sample memory pool for granular synthesis'),
@@ -95,7 +88,6 @@ export class ParameterBuilder {
             this.slider('grainDensity', 'Grain Density', 0.1, 10.0, 1.0, 0.1, 'grains/ms', 'Density of granular synthesis grains')
         ];
     }
-
     static waveguideParams(lengthDefault = 100, accelDefault = true) {
         const baseParams = [
             this.slider('waveguideLength', 'Waveguide Length', 10, 1000, lengthDefault, 10, 'samples', 'Length of the digital waveguide delay line'),
@@ -117,7 +109,6 @@ export class ParameterBuilder {
 
         return baseParams;
     }
-
     static fdtdParams(roomSizeDefault = 50) {
         return [
             this.slider('roomSizeX', 'Room Size X', 10, 100, roomSizeDefault, 5, 'grid points', 'Room dimension in X direction'),
@@ -133,7 +124,6 @@ export class ParameterBuilder {
             this.slider('spatialStep', 'Spatial Step Size', 0.001, 0.1, 0.01, 0.001, 'm', 'Grid spacing for finite difference calculation')
         ];
     }
-
     static modalParams(numModesDefault = 1024, outputTracksDefault = 32) {
         return [
             this.slider('numModes', 'Number of Modes', 128, 8192, numModesDefault, 128, '', 'Number of resonant modes in the filter bank'),

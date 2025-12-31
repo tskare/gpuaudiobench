@@ -1,11 +1,9 @@
-
 export class BufferManager {
     constructor(device) {
         this.device = device;
         this.buffers = new Map();
         this.totalAllocated = 0;
     }
-
     createBuffer(name, size, usage, label = null) {
         if (this.buffers.has(name)) {
             console.warn(`Buffer '${name}' already exists, replacing it`);
@@ -30,7 +28,6 @@ export class BufferManager {
 
         return buffer;
     }
-
     createAudioBuffer(name, sampleCount, testPattern = 'random') {
         const size = sampleCount * 4; // 4 bytes per float32
         const buffer = this.createBuffer(
@@ -39,13 +36,11 @@ export class BufferManager {
             GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         );
 
-        // Generate test data
         const data = this.generateAudioTestData(sampleCount, testPattern);
         this.device.queue.writeBuffer(buffer, 0, data);
 
         return buffer;
     }
-
     generateAudioTestData(sampleCount, pattern = 'random') {
         const data = new Float32Array(sampleCount);
 
@@ -94,7 +89,6 @@ export class BufferManager {
 
         return data;
     }
-
     createMultiTrackBuffers(baseName, bufferSize, trackCount, pattern = 'random') {
         const totalSamples = bufferSize * trackCount;
 
@@ -112,7 +106,6 @@ export class BufferManager {
 
         return { inputBuffer, outputBuffer };
     }
-
     getBuffer(name) {
         const bufferInfo = this.buffers.get(name);
         if (!bufferInfo) {
@@ -120,35 +113,29 @@ export class BufferManager {
         }
         return bufferInfo.buffer;
     }
-
     getBufferInfo(name) {
         return this.buffers.get(name);
     }
-
     writeBuffer(name, data, offset = 0) {
         const buffer = this.getBuffer(name);
         this.device.queue.writeBuffer(buffer, offset, data);
     }
-
     async readBuffer(name) {
         const bufferInfo = this.getBufferInfo(name);
         if (!bufferInfo) {
             throw new Error(`Buffer '${name}' not found`);
         }
 
-        // Create staging buffer for reading
         const stagingBuffer = this.device.createBuffer({
             size: bufferInfo.size,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
             label: `${name}_staging`
         });
 
-        // Copy data to staging buffer
         const encoder = this.device.createCommandEncoder();
         encoder.copyBufferToBuffer(bufferInfo.buffer, 0, stagingBuffer, 0, bufferInfo.size);
         this.device.queue.submit([encoder.finish()]);
 
-        // Map and read data
         await stagingBuffer.mapAsync(GPUMapMode.READ);
         const data = new Float32Array(stagingBuffer.getMappedRange().slice());
         stagingBuffer.unmap();
@@ -156,7 +143,6 @@ export class BufferManager {
 
         return data;
     }
-
     copyBuffer(sourceName, destName, size = null) {
         const sourceBuffer = this.getBuffer(sourceName);
         const destBuffer = this.getBuffer(destName);
@@ -168,7 +154,6 @@ export class BufferManager {
         encoder.copyBufferToBuffer(sourceBuffer, 0, destBuffer, 0, copySize);
         this.device.queue.submit([encoder.finish()]);
     }
-
     clearBuffer(name) {
         const bufferInfo = this.getBufferInfo(name);
         if (!bufferInfo) {
@@ -178,7 +163,6 @@ export class BufferManager {
         const zeros = new Uint8Array(bufferInfo.size);
         this.device.queue.writeBuffer(bufferInfo.buffer, 0, zeros);
     }
-
     destroyBuffer(name) {
         const bufferInfo = this.buffers.get(name);
         if (bufferInfo) {
@@ -188,7 +172,6 @@ export class BufferManager {
             console.log(`Destroyed buffer '${name}': ${this.formatBytes(bufferInfo.size)}`);
         }
     }
-
     destroyAll() {
         for (const [name, bufferInfo] of this.buffers) {
             bufferInfo.buffer.destroy();
@@ -197,7 +180,6 @@ export class BufferManager {
         this.buffers.clear();
         this.totalAllocated = 0;
     }
-
     getMemoryStats() {
         const bufferList = Array.from(this.buffers.entries()).map(([name, info]) => ({
             name,
@@ -214,7 +196,6 @@ export class BufferManager {
             buffers: bufferList
         };
     }
-
     async validateBuffer(bufferName, reference, tolerance = 1e-6) {
         const data = await this.readBuffer(bufferName);
 
@@ -254,7 +235,6 @@ export class BufferManager {
                 : `Validation failed: ${errorCount} values exceed tolerance ${tolerance}`
         };
     }
-
     formatBytes(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -262,7 +242,6 @@ export class BufferManager {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-
     formatUsage(usage) {
         const flags = [];
         if (usage & GPUBufferUsage.MAP_READ) flags.push('MAP_READ');
@@ -277,7 +256,6 @@ export class BufferManager {
         if (usage & GPUBufferUsage.QUERY_RESOLVE) flags.push('QUERY_RESOLVE');
         return flags.join(' | ') || 'NONE';
     }
-
     logMemoryStats() {
         const stats = this.getMemoryStats();
         console.log('BufferManager Memory Statistics:');

@@ -1,6 +1,5 @@
-
 export class Statistics {
-        static calculate(values) {
+    static calculate(values) {
         if (!Array.isArray(values) || values.length === 0) {
             return {
                 count: 0,
@@ -18,22 +17,18 @@ export class Statistics {
         const sorted = [...values].sort((a, b) => a - b);
         const count = sorted.length;
 
-        // Basic stats
         const min = sorted[0];
         const max = sorted[count - 1];
         const sum = values.reduce((acc, val) => acc + val, 0);
         const mean = sum / count;
 
-        // Median
         const median = count % 2 === 0
             ? (sorted[Math.floor(count / 2) - 1] + sorted[Math.floor(count / 2)]) / 2
             : sorted[Math.floor(count / 2)];
 
-        // Percentiles
         const p95 = this.percentile(sorted, 95);
         const p99 = this.percentile(sorted, 99);
 
-        // Variance and standard deviation
         const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / count;
         const stddev = Math.sqrt(variance);
 
@@ -49,8 +44,7 @@ export class Statistics {
             variance
         };
     }
-
-        static percentile(sortedArray, percentile) {
+    static percentile(sortedArray, percentile) {
         if (sortedArray.length === 0) return 0;
         if (percentile <= 0) return sortedArray[0];
         if (percentile >= 100) return sortedArray[sortedArray.length - 1];
@@ -66,8 +60,7 @@ export class Statistics {
         const weight = index - lower;
         return sortedArray[lower] * (1 - weight) + sortedArray[upper] * weight;
     }
-
-        static formatTime(milliseconds) {
+    static formatTime(milliseconds) {
         if (milliseconds < 0.001) {
             return `${(milliseconds * 1000000).toFixed(2)} ns`;
         } else if (milliseconds < 1) {
@@ -78,12 +71,21 @@ export class Statistics {
             return `${(milliseconds / 1000).toFixed(2)} s`;
         }
     }
-
-        static histogram(values, bins = 20) {
+    static histogram(values, bins = 20) {
         if (values.length === 0) return { bins: [], counts: [], binWidth: 0 };
 
         const min = Math.min(...values);
         const max = Math.max(...values);
+        if (max === min) {
+            // Degenerate case: all values identical
+            const counts = new Array(bins).fill(0);
+            counts[0] = values.length;
+            return {
+                bins: Array.from({ length: bins + 1 }, () => min),
+                counts,
+                binWidth: 0
+            };
+        }
         const binWidth = (max - min) / bins;
 
         const binEdges = Array.from({ length: bins + 1 }, (_, i) => min + i * binWidth);
@@ -101,30 +103,35 @@ export class Statistics {
             binWidth
         };
     }
-
-        static calculateErrorMetrics(gpuData, referenceData, tolerance) {
+    static calculateErrorMetrics(gpuData, referenceData, tolerance) {
         if (!referenceData) {
             return {
                 passed: false,
                 maxError: Infinity,
                 meanError: Infinity,
                 tolerance,
+                errorCount: 0,
+                samplesChecked: 0,
                 message: 'No reference data available'
             };
         }
 
         if (gpuData.length !== referenceData.length) {
+            const samplesChecked = Math.min(gpuData.length, referenceData.length);
             return {
                 passed: false,
                 maxError: Infinity,
                 meanError: Infinity,
                 tolerance,
+                errorCount: 0,
+                samplesChecked,
                 message: `Length mismatch: got ${gpuData.length}, expected ${referenceData.length}`
             };
         }
 
         let maxError = 0;
         let totalError = 0;
+        let errorCount = 0;
 
         for (let i = 0; i < referenceData.length; i++) {
             const error = Math.abs(gpuData[i] - referenceData[i]);
@@ -132,6 +139,9 @@ export class Statistics {
                 maxError = error;
             }
             totalError += error;
+            if (error > tolerance) {
+                errorCount++;
+            }
         }
 
         const meanError = referenceData.length > 0 ? totalError / referenceData.length : 0;
@@ -142,13 +152,14 @@ export class Statistics {
             maxError,
             meanError,
             tolerance,
+            errorCount,
+            samplesChecked: referenceData.length,
             message: passed
                 ? `Validation passed (max error ${maxError.toExponential(3)})`
                 : `Max error ${maxError.toExponential(3)} exceeds tolerance ${tolerance}`
         };
     }
-
-        static detectOutliers(values) {
+    static detectOutliers(values) {
         if (values.length < 4) return [];
 
         const sorted = [...values].sort((a, b) => a - b);
@@ -160,13 +171,11 @@ export class Statistics {
 
         return values.filter(value => value < lowerBound || value > upperBound);
     }
-
-        static coefficientOfVariation(values) {
+    static coefficientOfVariation(values) {
         const stats = this.calculate(values);
         return stats.mean !== 0 ? stats.stddev / stats.mean : 0;
     }
-
-        static compare(baseline, comparison) {
+    static compare(baseline, comparison) {
         const baseStats = this.calculate(baseline);
         const compStats = this.calculate(comparison);
 
@@ -184,8 +193,7 @@ export class Statistics {
             }
         };
     }
-
-        static toCSV(statisticsArray, includeHeaders = true) {
+    static toCSV(statisticsArray, includeHeaders = true) {
         if (statisticsArray.length === 0) return '';
 
         const headers = ['benchmark', 'count', 'min', 'max', 'mean', 'median', 'p95', 'p99', 'stddev'];
@@ -212,8 +220,7 @@ export class Statistics {
 
         return rows.join('\n');
     }
-
-        static summarize(results) {
+    static summarize(results) {
         const stats = this.calculate(results.latencies);
         const outliers = this.detectOutliers(results.latencies);
         const cv = this.coefficientOfVariation(results.latencies);

@@ -1,5 +1,3 @@
-// DWG1DNaive Benchmark - Digital waveguide synthesis baseline
-
 import { GPUABenchmark } from '../core/GPUABenchmark.js';
 import { BufferManager } from '../core/BufferManager.js';
 import { VALIDATION_TOLERANCE } from '../core/ValidationConstants.js';
@@ -52,7 +50,6 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
         );
         this.device.queue.writeBuffer(this.waveguideBuffer, 0, stateBuffer);
 
-        // Delay lines
         const delaySize = this.numWaveguides * this.waveguideLength;
         this.delayForwardData = new Float32Array(delaySize);
         this.delayBackwardData = new Float32Array(delaySize);
@@ -70,7 +67,6 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
         this.writeBuffer('delayForward', this.delayForwardData);
         this.writeBuffer('delayBackward', this.delayBackwardData);
 
-        // Input signal (impulse + light noise)
         this.inputSignal = new Float32Array(this.bufferSize);
         if (this.bufferSize > 0) {
             this.inputSignal[0] = 1.0;
@@ -85,7 +81,6 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('inputSignal', this.inputSignal);
 
-        // Output buffer (mono)
         this.outputBuffer = this.createBuffer(
             'output',
             this.bufferSize * 4,
@@ -93,7 +88,6 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
         );
         this.writeBuffer('output', new Float32Array(this.bufferSize));
 
-        // Uniform params
         const paramsData = new ArrayBuffer(16);
         const paramsView = new DataView(paramsData);
         paramsView.setUint32(0, this.bufferSize, true);
@@ -206,10 +200,11 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
     }
 
     async performIteration() {
-        const zeroDelays = new Float32Array(this.delayForwardData.length);
+        const zeroDelays = this.getZeroedArray('f32', this.delayForwardData.length);
+        const zeroOutput = this.getZeroedArray('f32', this.bufferSize);
         this.writeBuffer('delayForward', zeroDelays);
         this.writeBuffer('delayBackward', zeroDelays);
-        this.writeBuffer('output', new Float32Array(this.bufferSize));
+        this.writeBuffer('output', zeroOutput);
 
         const workgroups = Math.ceil(this.numWaveguides / 64);
         await this.executeComputePass(workgroups, 1, 1, false);
@@ -217,60 +212,7 @@ export class DWG1DNaiveBenchmark extends GPUABenchmark {
 
     async validate() {
         const gpuOutput = await this.readBuffer('output');
-        const metrics = this.calculateErrorMetrics(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.DWG_SYNTHESIS);
-        return {
-            passed: metrics.passed,
-            maxError: metrics.maxError,
-            meanError: metrics.meanError,
-            tolerance: metrics.tolerance,
-            message: metrics.message
-        };
-    }
-
-    calculateErrorMetrics(gpuData, referenceData, tolerance) {
-        if (!referenceData) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: 'No reference data available'
-            };
-        }
-
-        if (gpuData.length !== referenceData.length) {
-            return {
-                passed: false,
-                maxError: Infinity,
-                meanError: Infinity,
-                tolerance,
-                message: `Length mismatch: got ${gpuData.length}, expected ${referenceData.length}`
-            };
-        }
-
-        let maxError = 0;
-        let totalError = 0;
-
-        for (let i = 0; i < referenceData.length; i++) {
-            const error = Math.abs(gpuData[i] - referenceData[i]);
-            if (error > maxError) {
-                maxError = error;
-            }
-            totalError += error;
-        }
-
-        const meanError = referenceData.length > 0 ? totalError / referenceData.length : 0;
-        const passed = maxError <= tolerance;
-
-        return {
-            passed,
-            maxError,
-            meanError,
-            tolerance,
-            message: passed
-                ? `Validation passed (max error ${maxError.toExponential(3)})`
-                : `Max error ${maxError.toExponential(3)} exceeds tolerance ${tolerance}`
-        };
+        return this.validateOutput(gpuOutput, this.referenceOutput, VALIDATION_TOLERANCE.DWG_SYNTHESIS);
     }
 
     getMetadata() {

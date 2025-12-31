@@ -1,5 +1,3 @@
-// Convolution1D Accel Benchmark - Sample-parallel FIR using shared tiling
-
 import { Convolution1DBenchmark } from './Convolution1DBenchmark.js';
 
 export class Convolution1DAccelBenchmark extends Convolution1DBenchmark {
