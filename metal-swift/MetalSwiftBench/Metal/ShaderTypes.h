@@ -1,10 +1,3 @@
-//
-//  ShaderTypes.h
-//  MetalSwiftBench
-//
-//  Types and structures shared between Metal shaders and Swift code
-//
-
 #ifndef ShaderTypes_h
 #define ShaderTypes_h
 

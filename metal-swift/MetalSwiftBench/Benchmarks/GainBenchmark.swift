@@ -1,5 +1,3 @@
-//  GainBenchmark.swift
-
 import Foundation
 import Metal
 

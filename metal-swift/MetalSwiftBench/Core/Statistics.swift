@@ -1,10 +1,3 @@
-//
-//  Statistics.swift
-//  MetalSwiftBench
-//
-//  Statistical analysis utilities for benchmark results
-//
-
 import Foundation
 
 struct Statistics {

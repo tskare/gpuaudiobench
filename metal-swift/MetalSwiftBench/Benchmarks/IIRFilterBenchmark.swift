@@ -1,10 +1,3 @@
-//
-//  IIRFilterBenchmark.swift
-//  MetalSwiftBench
-//
-//  IIR biquad filter benchmark - implements a 2nd order digital filter
-//
-
 import Foundation
 import Metal
 
@@ -14,7 +7,6 @@ final class IIRFilterBenchmark: BaseBenchmark {
     private var coefficientsBuffer: MTLBuffer?
     private var stateBuffer: MTLBuffer?
     
-    // CPU reference data
     private var hostInputBuffer: UnsafeMutablePointer<Float>?
     private var cpuGoldenBuffer: UnsafeMutablePointer<Float>?
     private var cpuFilterStates: UnsafeMutablePointer<Float>?  // 2 states per track
@@ -43,10 +35,8 @@ final class IIRFilterBenchmark: BaseBenchmark {
         cpuGoldenBuffer = UnsafeMutablePointer<Float>.allocate(capacity: trackCount * bufferSize)
         cpuFilterStates = UnsafeMutablePointer<Float>.allocate(capacity: trackCount * 2)
         
-        // Initialize filter coefficients (simple lowpass at fs/4)
         let coeffPtr = coefficientsBuffer!.contents().bindMemory(to: IIRCoefficients.self, capacity: 1)
         
-        // Simple butterworth lowpass design
         let omega = Float.pi / 2  // fs/4 normalized frequency
         let sin_omega = sin(omega)
         let cos_omega = cos(omega)
@@ -65,14 +55,12 @@ final class IIRFilterBenchmark: BaseBenchmark {
         coeffPtr.pointee.a1 = a1
         coeffPtr.pointee.a2 = a2
         
-        // Keep a CPU copy so Direct Form II uses the exact GPU coefficients.
         filterCoefficients.b0 = b0
         filterCoefficients.b1 = b1
         filterCoefficients.b2 = b2
         filterCoefficients.a1 = a1
         filterCoefficients.a2 = a2
         
-        // Initialize input with random audio
         let inputPointer = inputBuffer!.contents().bindMemory(to: Float.self, capacity: trackCount * bufferSize)
         for i in 0..<(trackCount * bufferSize) {
             let value = Float.random(in: -1...1)
@@ -80,13 +68,10 @@ final class IIRFilterBenchmark: BaseBenchmark {
             hostInputBuffer![i] = value
         }
         
-        // Clear GPU delay lines so each run starts from silence.
         memset(stateBuffer!.contents(), 0, stateSize)
-        // Reset CPU history before generating the baseline audio.
         memset(cpuGoldenBuffer, 0, trackCount * bufferSize * MemoryLayout<Float>.size)
         memset(cpuFilterStates, 0, trackCount * 2 * MemoryLayout<Float>.size)
         
-        // Precompute the CPU baseline used during validation.
         calculateCPUGoldenReference()
     }
     
@@ -103,7 +88,6 @@ final class IIRFilterBenchmark: BaseBenchmark {
                 let sampleIndex = trackBase + sampleIdx
                 let x = hostInputBuffer![sampleIndex]
                 
-                // Match GPU's Direct Form II implementation so tolerances stay tight
                 let w = x - filterCoefficients.a1 * z1 - filterCoefficients.a2 * z2
                 let y = filterCoefficients.b0 * w + filterCoefficients.b1 * z1 + filterCoefficients.b2 * z2
                 
@@ -144,7 +128,6 @@ final class IIRFilterBenchmark: BaseBenchmark {
             throw BenchmarkError.pipelineCreationFailed
         }
 
-        // Ensure both GPU and CPU filter states start fresh for every iteration
         resetFilterStatesForIteration()
 
         var params = makeParams(gainValue: 1.0)
@@ -199,7 +182,6 @@ final class IIRFilterBenchmark: BaseBenchmark {
             return (false, Float.infinity, Float.infinity, 0)
         }
 
-        // Recompute CPU reference with cleared state so comparisons reflect a single pass
         resetCPUReferenceState()
         calculateCPUGoldenReference()
         

@@ -1,2 +1,3 @@
 # metal-swift build directory
 build/
+.clang-module-cache/

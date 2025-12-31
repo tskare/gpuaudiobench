@@ -1,5 +1,3 @@
-//  BenchmarkUtilities.swift
-
 import Foundation
 import Metal
 import QuartzCore
@@ -136,6 +134,46 @@ struct GPUTimer {
         mach_timebase_info(&timebase)
         let nanos = (endTime - startTime) * UInt64(timebase.numer) / UInt64(timebase.denom)
         return Double(nanos) / 1_000_000_000.0
+    }
+}
+
+enum DAWSimulationMode: String {
+    case spin
+    case sleep
+}
+
+struct DAWSimulationState {
+    var nextStart: TimeInterval?
+}
+
+struct DAWSimulator {
+    let bufferDuration: TimeInterval
+    let mode: DAWSimulationMode
+    let jitterSeconds: TimeInterval
+
+    func wait(state: inout DAWSimulationState) {
+        let now = CACurrentMediaTime()
+        if state.nextStart == nil {
+            state.nextStart = now + bufferDuration
+        }
+
+        let jitter = jitterSeconds > 0
+            ? Double.random(in: -jitterSeconds...jitterSeconds)
+            : 0
+        let target = (state.nextStart ?? now) + jitter
+        let delay = target - now
+
+        if delay > 0 {
+            switch mode {
+            case .sleep:
+                Thread.sleep(forTimeInterval: delay)
+            case .spin:
+                while CACurrentMediaTime() < target {}
+            }
+        }
+
+        // nextStart is always set at function entry, so force-unwrap is safe
+        state.nextStart = state.nextStart! + bufferDuration
     }
 }
 

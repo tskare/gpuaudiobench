@@ -1,5 +1,3 @@
-//  FFTBenchmark.swift
-
 import Foundation
 import Metal
 import Accelerate
@@ -9,17 +7,14 @@ final class FFTBenchmark: BaseBenchmark {
     private var outputBuffer: MTLBuffer?
     private let fftSize: Int = 1024  // Default FFT size
 
-    // CPU reference data
     private var hostInputBuffer: UnsafeMutablePointer<Float>?
     private var cpuGoldenBuffer: UnsafeMutablePointer<Float>?
 
-    // vDSP FFT setup for CPU reference
     private var fftSetup: vDSP_DFT_Setup?
 
     required init(device: MTLDevice, bufferSize: Int, trackCount: Int) throws {
         try super.init(device: device, bufferSize: bufferSize, trackCount: trackCount)
 
-        // Initialize vDSP FFT setup for CPU reference
         fftSetup = vDSP_DFT_zop_CreateSetup(nil, vDSP_Length(fftSize), vDSP_DFT_Direction.FORWARD)
         guard fftSetup != nil else {
             throw BenchmarkError.invalidConfiguration("Failed to create vDSP FFT setup")
@@ -153,8 +148,10 @@ final class FFTBenchmark: BaseBenchmark {
             return (false, Float.infinity, Float.infinity, 0)
         }
 
-        let outputPointer = outputBuffer.contents().bindMemory(to: Float.self, capacity: trackCount * (fftSize / 2 + 1) * 2)
-        let totalBins = trackCount * (fftSize / 2 + 1)
+        let outputCapacity = outputBuffer.length / MemoryLayout<Float>.size
+        let outputPointer = outputBuffer.contents().bindMemory(to: Float.self, capacity: outputCapacity)
+        let complexCapacity = outputCapacity / 2
+        let totalBins = min(trackCount * (fftSize / 2 + 1), complexCapacity)
         let tolerance: Float = 1e-4  // Tolerance for floating point FFT comparison
 
         return compareWithGolden(

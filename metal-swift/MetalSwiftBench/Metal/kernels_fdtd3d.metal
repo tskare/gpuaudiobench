@@ -228,51 +228,6 @@ kernel void fdtd3d_extract_output(device const float* pressure        [[buffer(0
 }
 
 //==============================================================================
-// FDTD3D Optimized Combined Update Kernel (Alternative Implementation)
-//==============================================================================
-
-// This kernel combines velocity and pressure updates for better performance
-// by reducing memory bandwidth requirements and improving arithmetic intensity
-kernel void fdtd3d_update_combined(device float* pressure             [[buffer(0)]],
-                                   device float* velocity_x           [[buffer(1)]],
-                                   device float* velocity_y           [[buffer(2)]],
-                                   device float* velocity_z           [[buffer(3)]],
-                                   constant FDTD3DParams& params      [[buffer(4)]],
-                                   uint3 thread_position_in_grid      [[thread_position_in_grid]],
-                                   threadgroup float* shared_pressure [[threadgroup(0)]]) {
-    
-    const uint nx = params.nx;
-    const uint ny = params.ny;
-    const uint nz = params.nz;
-    
-    const uint x = thread_position_in_grid.x;
-    const uint y = thread_position_in_grid.y;
-    const uint z = thread_position_in_grid.z;
-    
-    const uint local_x = x % 8;  // Assuming 8x8x4 threadgroup
-    const uint local_y = y % 8;
-    const uint local_z = z % 4;
-    
-    // Load pressure values into threadgroup memory for reuse
-    if (x < nx && y < ny && z < nz) {
-        const uint p_idx = grid_index_3d(x, y, z, nx, ny);
-        const uint local_idx = local_z * 64 + local_y * 8 + local_x;  // 8*8*4 = 256
-        shared_pressure[local_idx] = pressure[p_idx];
-    }
-    
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    
-    // Update velocities using shared pressure data when possible
-    // (Implementation would continue with optimized memory access patterns)
-    // This is a framework - full implementation would be more complex
-    
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    
-    // Update pressures using updated velocities
-    // (Similar pattern with optimized shared memory usage)
-}
-
-//==============================================================================
 // FDTD3D Energy Calculation Kernel (for verification)
 //==============================================================================
 

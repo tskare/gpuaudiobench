@@ -87,6 +87,7 @@ protocol GPUABenchmark {
     func cleanup()
 
     var validationMode: ValidationMode { get set }
+    var dawSimulator: DAWSimulator? { get set }
 }
 
 extension GPUABenchmark {
@@ -118,6 +119,7 @@ class BaseBenchmark: GPUABenchmark {
     private(set) var commandEncoder: CommandEncoder
     private var currentIterationGPUDuration: TimeInterval = 0
     var validationMode: ValidationMode = .full
+    var dawSimulator: DAWSimulator?
 
     required init(device: MTLDevice, bufferSize: Int, trackCount: Int) throws {
         self.device = device
@@ -188,6 +190,14 @@ class BaseBenchmark: GPUABenchmark {
                 "meanLatencyMs": stats.mean
             ]
         ]
+
+        if let dawSimulator = dawSimulator {
+            metadata["dawSimulation"] = [
+                "mode": dawSimulator.mode.rawValue,
+                "jitterUs": dawSimulator.jitterSeconds * 1_000_000,
+                "bufferDurationMs": dawSimulator.bufferDuration * 1000
+            ]
+        }
 
         if validationMode == .spot {
             metadata["validationSampleTarget"] = BaseBenchmark.spotSampleCount
@@ -345,6 +355,8 @@ class BaseBenchmark: GPUABenchmark {
         var gpuLatencies: [TimeInterval] = []
         gpuLatencies.reserveCapacity(iterations)
 
+        var dawState = DAWSimulationState()
+
         if warmupIterations > 0 {
             print("Running \(warmupIterations) warmup iterations...")
             for i in 0..<warmupIterations {
@@ -356,6 +368,9 @@ class BaseBenchmark: GPUABenchmark {
                     print("  Warmup iteration \(i + 1) failed: \(error)")
                 }
                 _ = finishIterationMetrics()
+                if let dawSimulator = dawSimulator {
+                    dawSimulator.wait(state: &dawState)
+                }
             }
             print("Warmup complete, starting timed iterations...")
         }
@@ -370,6 +385,9 @@ class BaseBenchmark: GPUABenchmark {
                 latencies.append(latency)
                 gpuLatencies.append(gpuDuration)
                 didCompleteIteration(iteration, latency: latency)
+                if let dawSimulator = dawSimulator {
+                    dawSimulator.wait(state: &dawState)
+                }
             } catch {
                 _ = finishIterationMetrics()
                 print("Error during benchmark iteration \(iteration + 1): \(error)")

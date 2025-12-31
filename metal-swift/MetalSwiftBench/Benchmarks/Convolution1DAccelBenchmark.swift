@@ -1,17 +1,8 @@
-//
-//  Convolution1DAccelBenchmark.swift
-//  MetalSwiftBench
-//
-//  1D convolution benchmark using frequency-domain acceleration
-//  Uses FFT-based convolution for improved performance with longer impulse responses
-//
-
 import Foundation
 import Metal
 
 final class Convolution1DAccelBenchmark: Convolution1DBaseBenchmark {
 
-    // Configuration parameters derived from current IR length
     private var fftSize: Int = 0
     private var overlapSize: Int = 0
 
@@ -37,7 +28,6 @@ final class Convolution1DAccelBenchmark: Convolution1DBaseBenchmark {
         // Allocate per-track complex spectra for the overlap-save path.
         let fftBufferSize = trackCount * fftSize * 2 * MemoryLayout<Float>.size // Complex numbers
 
-        // Create additional GPU buffers for FFT workflow
         fftInputBuffer = try allocateBuffer(length: fftBufferSize)
         fftOutputBuffer = try allocateBuffer(length: fftBufferSize)
         irFFTBuffer = try allocateBuffer(length: fftBufferSize)

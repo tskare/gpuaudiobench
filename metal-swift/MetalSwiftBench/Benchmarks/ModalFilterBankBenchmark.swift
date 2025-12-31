@@ -1,18 +1,10 @@
-//
-//  ModalFilterBankBenchmark.swift
-//  MetalSwiftBench
-//
-//  Modal synthesis filter bank benchmark - complex number processing
-//
-
 import Foundation
 import Metal
 
 final class ModalFilterBankBenchmark: BaseBenchmark {
     
-    // Configuration parameters (tunable)
     var numModes: Int = 1024 * 1024
-    let numModeParams: Int = 8  // amplitude, frequency, phase, state.re, state.im, 3 reserved
+    let numModeParams: Int = 8
     var outputTracks: Int = 32
     
     private var inputBuffer: MTLBuffer?
@@ -38,65 +30,51 @@ final class ModalFilterBankBenchmark: BaseBenchmark {
     override func setup() throws {
         try super.setup()
         
-        // Size buffers to hold per-mode parameters and per-track outputs.
         let inputBufferSize = numModes * numModeParams * MemoryLayout<Float>.size
         let outputBufferSize = bufferSize * outputTracks * MemoryLayout<Float>.size
         
-        // Create GPU buffers
         inputBuffer = try allocateBuffer(length: inputBufferSize)
         outputBuffer = try allocateBuffer(length: outputBufferSize)
         
-        // Mirror mode parameters and outputs on CPU for validation.
         hostInputBuffer = UnsafeMutablePointer<Float>.allocate(capacity: numModes * numModeParams)
         cpuGoldenBuffer = UnsafeMutablePointer<Float>.allocate(capacity: bufferSize * outputTracks)
         
-        // Initialize input data with modal parameters
         let inputPointer = inputBuffer!.contents().bindMemory(to: Float.self, capacity: numModes * numModeParams)
         
         for i in 0..<numModes {
             let baseIdx = i * numModeParams
-            // amplitude
             inputPointer[baseIdx + 0] = Float.random(in: 0.0...1.0)
             hostInputBuffer![baseIdx + 0] = inputPointer[baseIdx + 0]
             
-            // frequency (normalized to avoid aliasing)
             inputPointer[baseIdx + 1] = Float.random(in: 0.0...0.45)  
             hostInputBuffer![baseIdx + 1] = inputPointer[baseIdx + 1]
             
-            // phase
             inputPointer[baseIdx + 2] = Float.random(in: 0.0...2.0 * Float.pi)
             hostInputBuffer![baseIdx + 2] = inputPointer[baseIdx + 2]
             
-            // real part of state
             inputPointer[baseIdx + 3] = Float.random(in: -1.0...1.0)
             hostInputBuffer![baseIdx + 3] = inputPointer[baseIdx + 3]
             
-            // imaginary part of state  
             inputPointer[baseIdx + 4] = Float.random(in: -1.0...1.0)
             hostInputBuffer![baseIdx + 4] = inputPointer[baseIdx + 4]
             
-            // reserved/padding parameters
             for j in 5..<numModeParams {
                 inputPointer[baseIdx + j] = 0.0
                 hostInputBuffer![baseIdx + j] = 0.0
             }
         }
         
-        // Start from silence so each dispatch produces a fresh accumulation.
         memset(outputBuffer!.contents(), 0, outputBufferSize)
         memset(cpuGoldenBuffer, 0, outputBufferSize)
         
-        // Generate the CPU modal synthesis baseline used for validation.
         calculateCPUGoldenReference()
     }
     
     private func calculateCPUGoldenReference() {
-        // Reset output buffer
         for i in 0..<(bufferSize * outputTracks) {
             cpuGoldenBuffer![i] = 0.0
         }
         
-        // Process each mode
         for modeIdx in 0..<numModes {
             let baseIdx = modeIdx * numModeParams
             let amp = hostInputBuffer![baseIdx + 0]
@@ -107,9 +85,7 @@ final class ModalFilterBankBenchmark: BaseBenchmark {
             // Spread modes across tracks round-robin to mimic the GPU's accumulation pattern.
             let outputTrack = modeIdx % outputTracks
             
-            // Complex exponential processing per sample
             for sampleIdx in 0..<bufferSize {
-                // Complex multiplication: state *= exp(i * 2pi * freq)
                 let cosVal = cosf(2.0 * Float.pi * freq)
                 let sinVal = sinf(2.0 * Float.pi * freq)
                 
@@ -119,7 +95,6 @@ final class ModalFilterBankBenchmark: BaseBenchmark {
                 stateRe = newRe
                 stateIm = newIm
                 
-                // Add contribution to output (real part only)
                 cpuGoldenBuffer![outputTrack * bufferSize + sampleIdx] += amp * stateRe
             }
         }
@@ -132,7 +107,6 @@ final class ModalFilterBankBenchmark: BaseBenchmark {
             throw BenchmarkError.pipelineCreationFailed
         }
 
-        // Clear output buffer before each dispatch to avoid accumulating results
         memset(outputBuffer.contents(), 0, bufferSize * outputTracks * MemoryLayout<Float>.size)
 
         var modeCount = UInt32(numModes)

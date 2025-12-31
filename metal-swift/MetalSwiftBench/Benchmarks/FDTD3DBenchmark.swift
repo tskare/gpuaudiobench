@@ -1,16 +1,8 @@
-//
-//  FDTD3DBenchmark.swift
-//  MetalSwiftBench
-//
-//  3D Finite Difference Time Domain - Room acoustics simulation
-//
-
 import Foundation
 import Metal
 import simd
 
 final class FDTD3DBenchmark: BaseBenchmark {
-    // Configuration parameters (tunable)
     var roomSize: (x: Int, y: Int, z: Int) = (50, 50, 50)
     var absorptionCoeff: Float = 0.2
     var soundSpeed: Float = 343.0  // m/s
@@ -18,12 +10,10 @@ final class FDTD3DBenchmark: BaseBenchmark {
     var sourcePosition: (x: Int, y: Int, z: Int) = (25, 25, 5)
     var receiverPosition: (x: Int, y: Int, z: Int) = (40, 15, 25)
     
-    // FDTD simulation parameters
     private var timeStep: Float = 0.0
     private var currentTime: Int = 0
     private var stepsPerSample: Int = 1
     
-    // Metal buffers
     private var pressureBuffer: MTLBuffer?
     private var velocityXBuffer: MTLBuffer?
     private var velocityYBuffer: MTLBuffer?
@@ -32,7 +22,6 @@ final class FDTD3DBenchmark: BaseBenchmark {
     private var inputBuffer: MTLBuffer?
     private var outputBuffer: MTLBuffer?
     
-    // Host buffers for verification
     private var hostInputBuffer: UnsafeMutablePointer<Float>?
     private var cpuGoldenBuffer: UnsafeMutablePointer<Float>?
     private var cpuPressureField: UnsafeMutablePointer<Float>?
@@ -40,7 +29,6 @@ final class FDTD3DBenchmark: BaseBenchmark {
     private var cpuVelocityYField: UnsafeMutablePointer<Float>?
     private var cpuVelocityZField: UnsafeMutablePointer<Float>?
     
-    // Compute pipeline states
     private var pressureUpdatePipeline: MTLComputePipelineState?
     private var velocityUpdatePipeline: MTLComputePipelineState?
     private var sourceInjectionPipeline: MTLComputePipelineState?
@@ -57,7 +45,6 @@ final class FDTD3DBenchmark: BaseBenchmark {
         let samplePeriod: Float = 1.0 / 48000.0  // Assuming 48kHz sample rate
         stepsPerSample = max(1, Int(samplePeriod / timeStep))
         
-        // This benchmark uses multiple kernels, base kernel name not used directly
         self.kernelName = "FDTD3D"
     }
     
@@ -67,7 +54,6 @@ final class FDTD3DBenchmark: BaseBenchmark {
         self.roomSize = roomSize
         self.absorptionCoeff = absorptionCoeff
         
-        // Recalculate FDTD parameters
         timeStep = 0.5 * spatialStep / (soundSpeed * sqrt(3.0))
         let samplePeriod: Float = 1.0 / 48000.0
         stepsPerSample = max(1, Int(samplePeriod / timeStep))
@@ -426,111 +412,71 @@ final class FDTD3DBenchmark: BaseBenchmark {
             memset(outputBuffer.contents(), 0, trackCount * bufferSize * MemoryLayout<Float>.size)
         }
 
-        guard let commandBuffer = commandQueue.makeCommandBuffer() else {
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeComputeCommandEncoder(),
+              let velocityPipeline = velocityUpdatePipeline,
+              let pressurePipeline = pressureUpdatePipeline,
+              let sourcePipeline = sourceInjectionPipeline,
+              let outputPipeline = outputExtractionPipeline,
+              let pressureBuffer = pressureBuffer,
+              let velocityXBuffer = velocityXBuffer,
+              let velocityYBuffer = velocityYBuffer,
+              let velocityZBuffer = velocityZBuffer,
+              let paramsBuffer = paramsBuffer,
+              let inputBuffer = inputBuffer,
+              let outputBuffer = outputBuffer else {
             throw BenchmarkError.failedToCreateCommandQueue
         }
-        
-        // Process bufferSize samples, each requiring stepsPerSample FDTD steps
+
+        let velocityThreads = makeThreadgroupSize(for: velocityPipeline)
+        let velocityThreadgroups = makeThreadgroups(forGrid: velocityGridSize(), threadsPerGroup: velocityThreads)
+        let pressureThreads = makeThreadgroupSize(for: pressurePipeline)
+        let pressureThreadgroups = makeThreadgroups(forGrid: pressureGridSize(), threadsPerGroup: pressureThreads)
+        let ioThreads = MTLSize(width: min(trackCount, 64), height: 1, depth: 1)
+        let ioThreadgroups = MTLSize(width: (trackCount + 63) / 64, height: 1, depth: 1)
+
         for sampleIdx in 0..<bufferSize {
-            // Inject audio input for this sample
-            try injectAudioSource(commandBuffer: commandBuffer, sampleIndex: sampleIdx)
+            var sampleIndex = UInt32(sampleIdx)
+            encoder.setComputePipelineState(sourcePipeline)
+            encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
+            encoder.setBuffer(inputBuffer, offset: 0, index: 1)
+            encoder.setBuffer(paramsBuffer, offset: 0, index: 2)
+            encoder.setBytes(&sampleIndex, length: MemoryLayout<UInt32>.size, index: 3)
+            encoder.dispatchThreadgroups(ioThreadgroups, threadsPerThreadgroup: ioThreads)
             
-            // Run multiple FDTD time steps per audio sample
             for _ in 0..<stepsPerSample {
-                try updateVelocityFields(commandBuffer: commandBuffer)
-                try updatePressureField(commandBuffer: commandBuffer)
+                encoder.setComputePipelineState(velocityPipeline)
+                encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
+                encoder.setBuffer(velocityXBuffer, offset: 0, index: 1)
+                encoder.setBuffer(velocityYBuffer, offset: 0, index: 2)
+                encoder.setBuffer(velocityZBuffer, offset: 0, index: 3)
+                encoder.setBuffer(paramsBuffer, offset: 0, index: 4)
+                encoder.dispatchThreadgroups(velocityThreadgroups, threadsPerThreadgroup: velocityThreads)
+
+                encoder.setComputePipelineState(pressurePipeline)
+                encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
+                encoder.setBuffer(velocityXBuffer, offset: 0, index: 1)
+                encoder.setBuffer(velocityYBuffer, offset: 0, index: 2)
+                encoder.setBuffer(velocityZBuffer, offset: 0, index: 3)
+                encoder.setBuffer(paramsBuffer, offset: 0, index: 4)
+                encoder.dispatchThreadgroups(pressureThreadgroups, threadsPerThreadgroup: pressureThreads)
                 currentTime += 1
             }
             
-            // Extract audio output for this sample
-            try extractAudioOutput(commandBuffer: commandBuffer, sampleIndex: sampleIdx)
+            encoder.setComputePipelineState(outputPipeline)
+            encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
+            encoder.setBuffer(outputBuffer, offset: 0, index: 1)
+            encoder.setBuffer(paramsBuffer, offset: 0, index: 2)
+            encoder.setBytes(&sampleIndex, length: MemoryLayout<UInt32>.size, index: 3)
+            encoder.dispatchThreadgroups(ioThreadgroups, threadsPerThreadgroup: ioThreads)
         }
-        
+
+        encoder.endEncoding()
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
         
         // Reset time counter for next iteration
         currentTime = 0
-    }
-    
-    private func updateVelocityFields(commandBuffer: MTLCommandBuffer) throws {
-        guard let encoder = commandBuffer.makeComputeCommandEncoder(),
-              let pipeline = velocityUpdatePipeline else {
-            throw BenchmarkError.pipelineCreationFailed
-        }
-        
-        encoder.setComputePipelineState(pipeline)
-        encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
-        encoder.setBuffer(velocityXBuffer, offset: 0, index: 1)
-        encoder.setBuffer(velocityYBuffer, offset: 0, index: 2)
-        encoder.setBuffer(velocityZBuffer, offset: 0, index: 3)
-        encoder.setBuffer(paramsBuffer, offset: 0, index: 4)
-        
-        let threadsPerThreadgroup = makeThreadgroupSize(for: pipeline)
-        let gridSize = velocityGridSize()
-        let threadgroupsPerGrid = makeThreadgroups(forGrid: gridSize, threadsPerGroup: threadsPerThreadgroup)
-        
-        encoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        encoder.endEncoding()
-    }
-    
-    private func updatePressureField(commandBuffer: MTLCommandBuffer) throws {
-        guard let encoder = commandBuffer.makeComputeCommandEncoder(),
-              let pipeline = pressureUpdatePipeline else {
-            throw BenchmarkError.pipelineCreationFailed
-        }
-        
-        encoder.setComputePipelineState(pipeline)
-        encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
-        encoder.setBuffer(velocityXBuffer, offset: 0, index: 1)
-        encoder.setBuffer(velocityYBuffer, offset: 0, index: 2)
-        encoder.setBuffer(velocityZBuffer, offset: 0, index: 3)
-        encoder.setBuffer(paramsBuffer, offset: 0, index: 4)
-        
-        let threadsPerThreadgroup = makeThreadgroupSize(for: pipeline)
-        let gridSize = pressureGridSize()
-        let threadgroupsPerGrid = makeThreadgroups(forGrid: gridSize, threadsPerGroup: threadsPerThreadgroup)
-        
-        encoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        encoder.endEncoding()
-    }
-    
-    private func injectAudioSource(commandBuffer: MTLCommandBuffer, sampleIndex: Int) throws {
-        guard let encoder = commandBuffer.makeComputeCommandEncoder(),
-              let pipeline = sourceInjectionPipeline else {
-            throw BenchmarkError.pipelineCreationFailed
-        }
-        
-        encoder.setComputePipelineState(pipeline)
-        encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
-        encoder.setBuffer(inputBuffer, offset: 0, index: 1)
-        encoder.setBuffer(paramsBuffer, offset: 0, index: 2)
-        encoder.setBytes([UInt32(sampleIndex)], length: MemoryLayout<UInt32>.size, index: 3)
-        
-        let threadsPerThreadgroup = MTLSize(width: min(trackCount, 64), height: 1, depth: 1)
-        let threadgroupsPerGrid = MTLSize(width: (trackCount + 63) / 64, height: 1, depth: 1)
-        
-        encoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        encoder.endEncoding()
-    }
-    
-    private func extractAudioOutput(commandBuffer: MTLCommandBuffer, sampleIndex: Int) throws {
-        guard let encoder = commandBuffer.makeComputeCommandEncoder(),
-              let pipeline = outputExtractionPipeline else {
-            throw BenchmarkError.pipelineCreationFailed
-        }
-        
-        encoder.setComputePipelineState(pipeline)
-        encoder.setBuffer(pressureBuffer, offset: 0, index: 0)
-        encoder.setBuffer(outputBuffer, offset: 0, index: 1)
-        encoder.setBuffer(paramsBuffer, offset: 0, index: 2)
-        encoder.setBytes([UInt32(sampleIndex)], length: MemoryLayout<UInt32>.size, index: 3)
-        
-        let threadsPerThreadgroup = MTLSize(width: min(trackCount, 64), height: 1, depth: 1)
-        let threadgroupsPerGrid = MTLSize(width: (trackCount + 63) / 64, height: 1, depth: 1)
-        
-        encoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        encoder.endEncoding()
     }
     
     private func makeThreadgroupSize(for pipeline: MTLComputePipelineState) -> MTLSize {
@@ -618,7 +564,6 @@ final class FDTD3DBenchmark: BaseBenchmark {
     }
 }
 
-// FDTD3D parameters structure matching the Metal shader
 private struct FDTD3DParams {
     let nx, ny, nz: UInt32
     let soundSpeed: Float

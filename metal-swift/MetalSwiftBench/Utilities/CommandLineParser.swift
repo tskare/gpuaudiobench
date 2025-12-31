@@ -1,10 +1,3 @@
-//
-//  CommandLineParser.swift
-//  MetalSwiftBench
-//
-//  Small helper for parsing command-line flags without external dependencies.
-//
-
 import Foundation
 
 struct CommandLineParser<Configuration> {

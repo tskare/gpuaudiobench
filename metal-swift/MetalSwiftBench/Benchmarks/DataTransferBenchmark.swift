@@ -1,10 +1,3 @@
-//
-//  DataTransferBenchmark.swift
-//  MetalSwiftBench
-//
-//  Measures data transfer overhead with varying input/output ratios
-//
-
 import Foundation
 import Metal
 
@@ -19,6 +12,10 @@ final class DataTransferBenchmark: BaseBenchmark {
     private var cpuGoldenBuffer: UnsafeMutablePointer<Float>?
     private var inputBufferSize: Int = 0
     private var outputBufferSize: Int = 0
+
+    deinit {
+        cleanup()
+    }
     
     init(device: MTLDevice, bufferSize: Int, trackCount: Int, inputRatio: Float, outputRatio: Float) throws {
         self.inputRatio = inputRatio
@@ -37,16 +34,13 @@ final class DataTransferBenchmark: BaseBenchmark {
     override func setup() throws {
         try super.setup()
         
-        // Scale the base audio footprint according to the requested I/O ratios.
         let baseBufferSize = trackCount * bufferSize * MemoryLayout<Float>.size
         inputBufferSize = Int(inputRatio * Float(baseBufferSize))
         outputBufferSize = Int(outputRatio * Float(baseBufferSize))
         
-        // Ensure minimum sizes
         inputBufferSize = max(inputBufferSize, MemoryLayout<Float>.size)
         outputBufferSize = max(outputBufferSize, MemoryLayout<Float>.size)
         
-        // Create GPU buffers
         guard let inBuffer = device.makeBuffer(length: inputBufferSize, options: .storageModeShared) else {
             throw BenchmarkError.bufferCreationFailed(size: inputBufferSize)
         }
@@ -57,22 +51,18 @@ final class DataTransferBenchmark: BaseBenchmark {
         }
         outputBuffer = outBuffer
         
-        // Create host buffers
         hostInputBuffer = UnsafeMutablePointer<Float>.allocate(capacity: inputBufferSize / MemoryLayout<Float>.size)
         hostOutputBuffer = UnsafeMutablePointer<Float>.allocate(capacity: outputBufferSize / MemoryLayout<Float>.size)
         cpuGoldenBuffer = UnsafeMutablePointer<Float>.allocate(capacity: outputBufferSize / MemoryLayout<Float>.size)
         
-        // Initialize input buffer with random data
         if let hostInput = hostInputBuffer {
             let count = inputBufferSize / MemoryLayout<Float>.size
             for i in 0..<count {
                 hostInput[i] = Float.random(in: -1.0...1.0)
             }
-            // Copy to GPU buffer
             memcpy(inBuffer.contents(), hostInput, inputBufferSize)
         }
         
-        // Zero outputs so any stray kernel writes show up immediately.
         memset(outBuffer.contents(), 0, outputBufferSize)
         memset(cpuGoldenBuffer, 0, outputBufferSize)
         
@@ -86,17 +76,14 @@ final class DataTransferBenchmark: BaseBenchmark {
             throw BenchmarkError.pipelineCreationFailed
         }
 
-        // Simulate DAW sending input data (CPU → GPU)
         memset(inputBuffer.contents(), 0, inputBufferSize)
 
-        // Execute the kernel
         try executeKernel(
             inputBuffer: inputBuffer,
             outputBuffer: outputBuffer,
             label: "DataTransfer"
         )
 
-        // Simulate DAW receiving output data (GPU → CPU)
         memcpy(hostOutput, outputBuffer.contents(), outputBufferSize)
     }
 
@@ -130,7 +117,7 @@ final class DataTransferBenchmark: BaseBenchmark {
         
         let sampleCount = outputBufferSize / MemoryLayout<Float>.size
         let outputPointer = outputBuffer.contents().bindMemory(to: Float.self, capacity: sampleCount)
-        let tolerance: Float = 1e-6  // Should be exact for no-op kernel
+        let tolerance: Float = 1e-6
 
         return compareWithGolden(
             gpuPointer: outputPointer,
@@ -158,9 +145,5 @@ final class DataTransferBenchmark: BaseBenchmark {
             cpuGolden.deallocate()
             cpuGoldenBuffer = nil
         }
-    }
-    
-    deinit {
-        cleanup()
     }
 }

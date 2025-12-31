@@ -1,11 +1,3 @@
-//
-//  GainStatsBenchmark.swift
-//  MetalSwiftBench
-//
-//  Gain processing with statistics calculation benchmark
-//  Applies gain while computing mean and max statistics per track
-//
-
 import Foundation
 import Metal
 
@@ -15,7 +7,6 @@ final class GainStatsBenchmark: BaseBenchmark {
     private var statsBuffer: MTLBuffer?
     private let gainValue: Float = 2.0
 
-    // CPU reference data
     private var hostInputBuffer: UnsafeMutablePointer<Float>?
     private var cpuGoldenBuffer: UnsafeMutablePointer<Float>?
     private var cpuGoldenStats: UnsafeMutablePointer<Float>?
@@ -32,19 +23,16 @@ final class GainStatsBenchmark: BaseBenchmark {
         let audioBufferSizeBytes = trackCount * bufferSize * MemoryLayout<Float>.size
         let statsBufferSizeBytes = trackCount * 2 * MemoryLayout<Float>.size // [mean, max] per track
 
-        // Create input buffer
         guard let inBuffer = device.makeBuffer(length: audioBufferSizeBytes, options: .storageModeShared) else {
             throw BenchmarkError.bufferCreationFailed(size: audioBufferSizeBytes)
         }
         inputBuffer = inBuffer
 
-        // Create output buffer
         guard let outBuffer = device.makeBuffer(length: audioBufferSizeBytes, options: .storageModeShared) else {
             throw BenchmarkError.bufferCreationFailed(size: audioBufferSizeBytes)
         }
         outputBuffer = outBuffer
 
-        // Create statistics buffer
         guard let statsBuf = device.makeBuffer(length: statsBufferSizeBytes, options: .storageModeShared) else {
             throw BenchmarkError.bufferCreationFailed(size: statsBufferSizeBytes)
         }
@@ -55,50 +43,42 @@ final class GainStatsBenchmark: BaseBenchmark {
         cpuGoldenBuffer = UnsafeMutablePointer<Float>.allocate(capacity: trackCount * bufferSize)
         cpuGoldenStats = UnsafeMutablePointer<Float>.allocate(capacity: trackCount * 2)
 
-        // Initialize input buffer with random audio data
         let inputPointer = inBuffer.contents().bindMemory(to: Float.self, capacity: trackCount * bufferSize)
+        var generator = RandomNumberGenerator(seed: 42)
         for i in 0..<(trackCount * bufferSize) {
-            let value = Float.random(in: 0...1)
+            let value = generator.nextFloat(in: 0...1)
             inputPointer[i] = value
             hostInputBuffer![i] = value
         }
 
-        // Clear outputs so stale GPU samples cannot contaminate the stats.
         memset(outBuffer.contents(), 0, audioBufferSizeBytes)
         memset(statsBuf.contents(), 0, statsBufferSizeBytes)
         memset(cpuGoldenBuffer, 0, audioBufferSizeBytes)
         memset(cpuGoldenStats, 0, statsBufferSizeBytes)
         
-        // Generate the CPU gain + statistics baseline for validation.
         calculateCPUGoldenReference()
     }
 
     private func calculateCPUGoldenReference() {
-        // Process each track
         for track in 0..<trackCount {
             let startIdx = track * bufferSize
             var trackMean: Float = 0.0
             var trackMax: Float = -Float.greatestFiniteMagnitude
 
-            // Process all samples in this track
             for i in 0..<bufferSize {
                 let idx = startIdx + i
                 let sample = hostInputBuffer![idx]
 
-                // Apply gain
                 cpuGoldenBuffer![idx] = gainValue * sample
 
-                // Accumulate statistics on original sample
                 trackMean += sample
                 if sample > trackMax {
                     trackMax = sample
                 }
             }
 
-            // Finalize statistics
             trackMean /= Float(bufferSize)
 
-            // Store statistics: [mean, max] per track
             cpuGoldenStats![track * 2 + 0] = trackMean
             cpuGoldenStats![track * 2 + 1] = trackMax
         }
@@ -133,7 +113,21 @@ final class GainStatsBenchmark: BaseBenchmark {
 
         if shouldValidate() {
             let verificationResult = verifyAgainstGoldenReference()
+            let totalSampleCount = verificationResult.audioSampleCount + verificationResult.statsSampleCount
+            let weightedMeanError: Float
+            if totalSampleCount > 0 {
+                let totalError = (verificationResult.meanAudioError * Float(verificationResult.audioSampleCount)) +
+                    (verificationResult.meanStatsError * Float(verificationResult.statsSampleCount))
+                weightedMeanError = totalError / Float(totalSampleCount)
+            } else {
+                weightedMeanError = 0
+            }
+            let maxError = max(verificationResult.maxAudioError, verificationResult.maxStatsError)
+
             enhancedMetadata["verificationPassed"] = verificationResult.passed
+            enhancedMetadata["maxError"] = maxError
+            enhancedMetadata["meanError"] = weightedMeanError
+            enhancedMetadata["verificationSampleCount"] = totalSampleCount
             enhancedMetadata["maxAudioError"] = verificationResult.maxAudioError
             enhancedMetadata["maxStatsError"] = verificationResult.maxStatsError
             enhancedMetadata["meanAudioError"] = verificationResult.meanAudioError

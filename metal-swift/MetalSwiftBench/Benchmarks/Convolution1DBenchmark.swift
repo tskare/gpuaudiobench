@@ -1,16 +1,8 @@
-//
-//  Convolution1DBenchmark.swift
-//  MetalSwiftBench
-//
-//  1D convolution benchmark - tests constant/texture memory vs device memory
-//
-
 import Foundation
 import Metal
 
 final class Convolution1DBenchmark: Convolution1DBaseBenchmark {
     
-    // Configuration parameters (tunable)
     var useConstantMemory: Bool = true  // Use constant memory for IRs vs device memory
 
     required convenience init(device: MTLDevice, bufferSize: Int, trackCount: Int) throws {

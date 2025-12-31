@@ -1,16 +1,8 @@
-//
-//  RandomMemoryReadBenchmark.swift
-//  MetalSwiftBench
-//
-//  Random memory access benchmark - simulates granular synthesis
-//
-
 import Foundation
 import Metal
 
 final class RandomMemoryReadBenchmark: BaseBenchmark {
     
-    // Configuration parameters (tunable)
     var sampleMemorySize: Int = 512 * 1024 * 1024 / MemoryLayout<Float>.size  // ~128M samples
     var minLoopLength: Int = 1000
     var maxLoopLength: Int = 48000
@@ -43,17 +35,14 @@ final class RandomMemoryReadBenchmark: BaseBenchmark {
         let playheadBufferSize = trackCount * MemoryLayout<Int32>.size
         let outputBufferSize = trackCount * bufferSize * MemoryLayout<Float>.size
         
-        // Allocate storage for sample memory, per-track playheads, and output audio.
         sampleMemoryBuffer = try allocateBuffer(length: sampleMemBufferSize)
         playheadBuffer = try allocateBuffer(length: playheadBufferSize)
         outputBuffer = try allocateBuffer(length: outputBufferSize)
         
-        // Maintain host mirrors so CPU validation sees the identical random layout.
         hostSampleMemory = UnsafeMutablePointer<Float>.allocate(capacity: sampleMemorySize)
         hostPlayheads = UnsafeMutablePointer<Int32>.allocate(capacity: trackCount)
         cpuGoldenBuffer = UnsafeMutablePointer<Float>.allocate(capacity: trackCount * bufferSize)
         
-        // Initialize sample memory with random audio data
         let samplePointer = sampleMemoryBuffer!.contents().bindMemory(to: Float.self, capacity: sampleMemorySize)
         for i in 0..<sampleMemorySize {
             let value = Float.random(in: -1.0...1.0)
@@ -61,12 +50,10 @@ final class RandomMemoryReadBenchmark: BaseBenchmark {
             hostSampleMemory![i] = value
         }
         
-        // Initialize playheads with random starting positions
         let playheadPointer = playheadBuffer!.contents().bindMemory(to: Int32.self, capacity: trackCount)
         let maxStartPosition = sampleMemorySize - maxLoopLength - bufferSize
         
         for i in 0..<trackCount {
-            // Generate random loop parameters
             let loopLength = Int32.random(in: Int32(minLoopLength)...Int32(maxLoopLength))
             let maxStart = max(0, maxStartPosition - Int(loopLength))
             let startPosition = Int32.random(in: 0...Int32(maxStart))
@@ -75,22 +62,18 @@ final class RandomMemoryReadBenchmark: BaseBenchmark {
             hostPlayheads![i] = startPosition
         }
         
-        // Clear outputs so mismatched GPU fetches stand out during validation.
         memset(outputBuffer!.contents(), 0, outputBufferSize)
         memset(cpuGoldenBuffer, 0, trackCount * bufferSize * MemoryLayout<Float>.size)
         
-        // Produce the CPU baseline used to validate the random fetches.
         calculateCPUGoldenReference()
     }
     
     private func calculateCPUGoldenReference() {
-        // Simulate the GPU kernel on CPU
         for trackIdx in 0..<trackCount {
             let playhead = Int(hostPlayheads![trackIdx])
             
             let trackBase = trackIdx * bufferSize
             for sampleIdx in 0..<bufferSize {
-                // Copy from sample memory to output (track-major layout)
                 let sampleMemIndex = playhead + sampleIdx
                 if sampleMemIndex < sampleMemorySize {
                     cpuGoldenBuffer![trackBase + sampleIdx] = hostSampleMemory![sampleMemIndex]

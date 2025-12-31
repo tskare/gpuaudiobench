@@ -1,17 +1,16 @@
-//  GPGPU Audio Benchmarks - Swift driver
-
 import Foundation
 import Metal
 import MetalKit
 
 struct CommandLineArgs {
     var bufferSize: Int = 512
-    // Empty filter runs all benchmarks.
     var benchmarkFilters: [String] = []
     var sampleRate: Int = 48000
     var trackCount: Int = 128
     var runCount: Int = 100
     var dawSimulation: Bool = false
+    var dawSimulationMode: DAWSimulationMode = .spin
+    var dawSimulationJitterUs: Double = 0
     var outputFile: String?
     var showHelp: Bool = false
     var listOnly: Bool = false
@@ -27,6 +26,13 @@ private func makeArgumentParser() -> CommandLineParser<CommandLineArgs> {
     func parsePositiveInt(_ value: String, option: String, minimum: Int = 1) throws -> Int {
         guard let parsed = Int(value), parsed >= minimum else {
             throw ParseError.validation(message: "Option \(option) expects an integer ≥ \(minimum). Received '\(value)'.")
+        }
+        return parsed
+    }
+
+    func parseNonNegativeDouble(_ value: String, option: String) throws -> Double {
+        guard let parsed = Double(value), parsed >= 0 else {
+            throw ParseError.validation(message: "Option \(option) expects a number ≥ 0. Received '\(value)'.")
         }
         return parsed
     }
@@ -106,6 +112,27 @@ private func makeArgumentParser() -> CommandLineParser<CommandLineArgs> {
             kind: .flag { config in config.dawSimulation = true }
         ),
         .init(
+            names: ["--dawsim-mode"],
+            help: "DAW simulation mode: spin | sleep (default: spin)",
+            kind: .value(valueName: "mode") { value, config in
+                switch value.lowercased() {
+                case "spin":
+                    config.dawSimulationMode = .spin
+                case "sleep":
+                    config.dawSimulationMode = .sleep
+                default:
+                    throw ParseError.validation(message: "Unknown DAW simulation mode '\(value)'. Expected spin | sleep.")
+                }
+            }
+        ),
+        .init(
+            names: ["--dawsim-jitter-us"],
+            help: "DAW simulation jitter in microseconds (default: 0)",
+            kind: .value(valueName: "us") { value, config in
+                config.dawSimulationJitterUs = try parseNonNegativeDouble(value, option: "--dawsim-jitter-us")
+            }
+        ),
+        .init(
             names: ["--outputfile"],
             help: "Path for CSV/JSON output",
             kind: .value(valueName: "path") { value, config in
@@ -182,8 +209,7 @@ func main() {
         printAvailableBenchmarks(includeLeadingBlankLine: true)
         exit(0)
     }
-
-    // Resolve selected benchmarks based on filters
+    
     let allBenchmarks = BenchmarkType.allCases
     let filters = args.benchmarkFilters
     let selected: [BenchmarkType]
@@ -208,12 +234,12 @@ func main() {
                     }
                 } else if name.caseInsensitiveCompare(token) == .orderedSame {
                     matched.insert(bench)
-                } else if name.lowercased().contains(token.lowercased()) { // substring match
+                } else if name.lowercased().contains(token.lowercased()) {
                     matched.insert(bench)
                 }
             }
         }
-        selected = Array(allBenchmarks.filter { matched.contains($0) }) // preserve order
+        selected = Array(allBenchmarks.filter { matched.contains($0) })
         print("Filters: \(filters.joined(separator: ",")) -> Matched: \(selected.map { $0.rawValue }.joined(separator: ", "))")
     }
 
@@ -223,10 +249,10 @@ func main() {
         exit(1)
     }
 
-    var outputLines: [String] = [] // CSV lines (if CSV output)
-    var jsonArray: [[String: Any]] = [] // Accumulate JSON entries
+    var outputLines: [String] = []
+    var jsonArray: [[String: Any]] = []
     let wantCSV = !args.jsonOutput
-    if wantCSV, let _ = args.outputFile { // add header only if writing CSV file
+    if wantCSV, let _ = args.outputFile {
         outputLines.append("benchmark,median_ms,p95_ms,p99_ms,max_ms,mean_ms,stddev_ms,count")
     }
 
@@ -239,6 +265,14 @@ func main() {
                 trackCount: args.trackCount
             )
             benchmark.validationMode = args.verificationMode
+            if args.dawSimulation {
+                let jitterSeconds = args.dawSimulationJitterUs / 1_000_000
+                benchmark.dawSimulator = DAWSimulator(
+                    bufferDuration: Double(args.bufferSize) / Double(args.sampleRate),
+                    mode: args.dawSimulationMode,
+                    jitterSeconds: jitterSeconds
+                )
+            }
 
             var didStartCapture = false
             if args.captureEnabled {
@@ -274,7 +308,6 @@ func main() {
             let result = try benchmark.runBenchmark(iterations: args.runCount, warmupIterations: 3)
             print("\n" + result.formatSummary())
 
-            // Deadline miss check
             let deadlineTracker = DeadlineTracker(bufferSize: args.bufferSize, sampleRate: args.sampleRate)
             let missRate = deadlineTracker.deadlineMissRate(in: result)
             if missRate > 0 {
@@ -283,7 +316,7 @@ func main() {
 
             let stats = result.statistics
             if wantCSV {
-                if let _ = args.outputFile { // store line for file
+                if let _ = args.outputFile {
                     outputLines.append("\(benchmarkType.rawValue),\(stats.median),\(stats.p95),\(stats.p99),\(stats.max),\(stats.mean),\(stats.standardDeviation),\(stats.count)")
                 }
             } else {
@@ -324,7 +357,7 @@ func main() {
         } else {
             print("Failed to serialize JSON results")
         }
-    } else if let outputFile = args.outputFile { // CSV output
+    } else if let outputFile = args.outputFile {
         do {
             try (outputLines.joined(separator: "\n") + "\n").write(toFile: outputFile, atomically: true, encoding: .utf8)
             print("\nCSV written to: \(outputFile)")

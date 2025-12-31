@@ -66,6 +66,9 @@ class DWG1DBaseBenchmark: BaseBenchmark {
     }
 
     override func setup() throws {
+        guard bufferSize <= 512 else {
+            throw BenchmarkError.invalidConfiguration("DWG benchmarks require bufferSize <= 512 to match shared memory limits.")
+        }
         try super.setup()
         let lengths = try generateWaveguideLengths()
         try prepareWaveguides(lengths: lengths)

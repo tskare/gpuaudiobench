@@ -1,10 +1,3 @@
-//
-//  NoOpBenchmark.swift
-//  MetalSwiftBench
-//
-//  Measures GPU kernel launch overhead with an empty kernel
-//
-
 import Foundation
 import Metal
 
@@ -19,7 +12,6 @@ final class NoOpBenchmark: BaseBenchmark {
     override func setup() throws {
         try super.setup()
         
-        // Create a dummy buffer because Metal syntax requires at least one input
         guard let buffer = device.makeBuffer(length: 1024, options: .storageModeShared) else {
             throw BenchmarkError.bufferCreationFailed(size: 1024)
         }
@@ -32,23 +24,18 @@ final class NoOpBenchmark: BaseBenchmark {
             throw BenchmarkError.pipelineCreationFailed
         }
 
-        // Create command buffer
         guard let commandBuffer = commandQueue.makeCommandBuffer() else {
             throw BenchmarkError.failedToCreateCommandQueue
         }
 
-        // Create compute encoder
         guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else {
             throw BenchmarkError.failedToCreateCommandQueue
         }
 
-        // Set pipeline state
         computeEncoder.setComputePipelineState(pipelineState)
 
-        // Set the dummy buffer
         computeEncoder.setBuffer(dummyBuffer, offset: 0, index: 0)
 
-        // Dispatch minimal workload (1x1x1)
         let threadsPerGrid = MTLSize(width: 1, height: 1, depth: 1)
         let threadsPerThreadgroup = MTLSize(
             width: min(pipelineState.maxTotalThreadsPerThreadgroup, 1),
@@ -59,10 +46,8 @@ final class NoOpBenchmark: BaseBenchmark {
         computeEncoder.dispatchThreads(threadsPerGrid,
                                      threadsPerThreadgroup: threadsPerThreadgroup)
 
-        // End encoding
         computeEncoder.endEncoding()
 
-        // Commit and wait
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
     }
