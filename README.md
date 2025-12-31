@@ -11,6 +11,9 @@ Note a platform passing these benchmarks is not a sufficient condition that a pr
 
 ## What's New
 
+> [!NOTE]  
+> I'm working to bring v2 out of beta. I'm also using the opportunity to get more accustomed to using AI agents. As such, please excuse the dust during refactoring...
+
 ### Version 2.0 Beta
 - MacOS version rewritten in Swift
 - Added experimental WebGPU platform
