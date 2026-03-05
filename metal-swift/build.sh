@@ -26,6 +26,10 @@ echo -e "${YELLOW}Compiling Metal shaders...${NC}"
 for metal_file in $METAL_FILES; do
     echo "  Compiling $(basename $metal_file)"
     xcrun -sdk macosx metal -c "$metal_file" -o "build/$(basename $metal_file .metal).air"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to compile $(basename $metal_file)${NC}"
+        exit 1
+    fi
 done
 
 # Create metallib

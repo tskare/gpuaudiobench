@@ -98,62 +98,6 @@ namespace BenchmarkUtils {
     // Memory Management Implementation
     // ============================================================================
 
-    template<typename T>
-    T* allocateDeviceBuffer(size_t count, const std::string& name) {
-        T* ptr = nullptr;
-        size_t size_bytes = count * sizeof(T);
-
-        cudaError_t error = cudaMalloc((void**)&ptr, size_bytes);
-        if (error != cudaSuccess) {
-            throw std::runtime_error("Failed to allocate " + name + " (" +
-                                   std::to_string(size_bytes) + " bytes): " +
-                                   cudaGetErrorString(error));
-        }
-
-        return ptr;
-    }
-
-    template<typename T>
-    T* allocateHostBuffer(size_t count, const std::string& name) {
-        T* ptr = nullptr;
-        size_t size_bytes = count * sizeof(T);
-
-        cudaError_t error = cudaMallocHost((void**)&ptr, size_bytes);
-        if (error != cudaSuccess) {
-            throw std::runtime_error("Failed to allocate pinned " + name + " (" +
-                                   std::to_string(size_bytes) + " bytes): " +
-                                   cudaGetErrorString(error));
-        }
-
-        return ptr;
-    }
-
-    template<typename T>
-    void copyToDevice(T* dst, const T* src, size_t count) {
-        size_t size_bytes = count * sizeof(T);
-        if (dst == nullptr || src == nullptr) {
-            throw std::invalid_argument("copyToDevice received null pointer");
-        }
-        cudaError_t error = cudaMemcpy(dst, src, size_bytes, cudaMemcpyHostToDevice);
-        if (error != cudaSuccess) {
-            throw std::runtime_error("Failed to copy " + std::to_string(size_bytes) +
-                                   " bytes to device: " + cudaGetErrorString(error));
-        }
-    }
-
-    template<typename T>
-    void copyToHost(T* dst, const T* src, size_t count) {
-        size_t size_bytes = count * sizeof(T);
-        if (dst == nullptr || src == nullptr) {
-            throw std::invalid_argument("copyToHost received null pointer");
-        }
-        cudaError_t error = cudaMemcpy(dst, src, size_bytes, cudaMemcpyDeviceToHost);
-        if (error != cudaSuccess) {
-            throw std::runtime_error("Failed to copy " + std::to_string(size_bytes) +
-                                   " bytes to host: " + cudaGetErrorString(error));
-        }
-    }
-
     void freeDeviceBuffers(std::initializer_list<void*> buffers) {
         for (auto* buffer : buffers) {
             if (buffer != nullptr) {
@@ -170,15 +114,6 @@ namespace BenchmarkUtils {
         }
     }
 
-    // Explicit template instantiations for common types
-    template float* allocateDeviceBuffer<float>(size_t, const std::string&);
-    template int* allocateDeviceBuffer<int>(size_t, const std::string&);
-    template cufftComplex* allocateDeviceBuffer<cufftComplex>(size_t, const std::string&);
-    template float* allocateHostBuffer<float>(size_t, const std::string&);
-    template int* allocateHostBuffer<int>(size_t, const std::string&);
-    template cufftComplex* allocateHostBuffer<cufftComplex>(size_t, const std::string&);
-    template void copyToDevice<float>(float*, const float*, size_t);
-    template void copyToHost<float>(float*, const float*, size_t);
 
     // ============================================================================
     // Timing Implementation

@@ -8,7 +8,7 @@ Windows/Linux CUDA implementation of real-time GPGPU audio processing benchmarks
 - `globals.cu[h]` - Global constants, parameters, and shared utility functions
 - `bench*.cu[h]` - Benchmark implementations built on the shared GPUABenchmark framework
 - `bench_base.cu[h]` - Base class framework providing lifecycle, timing, and validation helpers
-- `benchmark_utils.cuh` - Utility functions for memory management and statistics
+- `bench_utils.cu[h]` - Utility functions for memory management and statistics
 
 ## Implementation Status
 
@@ -44,7 +44,7 @@ Options:
   --benchmark [name]  Run specific benchmark
   --fs [rate]         Set sampling rate (default: 48000)
   --bufferSize [size] Set buffer size (default: 512)
-  --nTracks [count]   Set number of tracks (default: 256)
+  --nTracks [count]   Set number of tracks (default: 128)
   --nRuns [count]     Set number of iterations (default: 100)
   --outputfile [file] Save results to CSV file
   --json              Output results in JSON format
@@ -75,15 +75,6 @@ gpubench --list
 - **CUDA Toolkit 11.0+**: Core CUDA runtime and development tools
 - **cuFFT**: CUDA FFT library (included with CUDA Toolkit) - required for FFT1D and Conv1D_accel benchmarks
 
-**Optional** (for older builds):
-- NVIDIA's [cuda-samples](https://github.com/NVIDIA/cuda-samples) may be required for legacy builds
-- Recent refactoring removed most helper_cuda.h dependencies
-
-The Makefile will automatically check these locations if cuda-samples is needed:
-- `CUDA_SAMPLES_DIR` environment variable
-- `../../cuda-samples/Common` (sibling directory)
-- Default CUDA Toolkit sample location
-
 ## Building and Running
 
 ### Linux
@@ -105,19 +96,18 @@ make
 ### Windows
 
 **Visual Studio 2022 Project**:
-1. Open `vectorAdd_vs2022.vcxproj` in Visual Studio
-2. Verify CUDA Toolkit paths in project settings
-3. Build solution (F7)
-4. Run from command line or set command arguments in VS
+1. Open `vectorAdd_vs2022.vcxproj` in Visual Studio 2022
+2. Build solution (F7)
+3. Run from command line or set command arguments in VS
 
-**Manual Setup** (if project file fails):
-1. Create new CUDA Runtime project in Visual Studio
-2. Add all `.cu` and `.cuh` files to project
-3. Configure include paths to point to cuda-samples
-4. Build and run
+**Command-line build** (with MSBuild):
+```bash
+msbuild vectorAdd_vs2022.vcxproj /p:Configuration=Release /p:Platform=x64
+```
 
 **Requirements**:
-- Visual Studio 2019/2022 with C++ and CUDA development tools
+- Visual Studio 2022 (v143 toolset) with C++ and CUDA development tools
 - CUDA Toolkit 11.0+
+- C++17 support
 - Windows 10/11
 

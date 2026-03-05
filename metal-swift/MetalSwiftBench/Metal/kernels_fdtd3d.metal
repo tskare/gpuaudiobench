@@ -6,6 +6,7 @@
 //
 
 #include <metal_stdlib>
+#include "ShaderTypes.h"
 
 using namespace metal;
 
@@ -23,18 +24,7 @@ using namespace metal;
       reduces the chance of numerical blow-up when the excitation is an impulse.
 */
 
-// FDTD3D parameters structure matching Swift implementation
-typedef struct {
-    uint32_t nx, ny, nz;
-    float soundSpeed;
-    float spatialStep;
-    float timeStep;
-    float absorptionCoeff;
-    uint32_t sourceX, sourceY, sourceZ;
-    uint32_t receiverX, receiverY, receiverZ;
-    uint32_t bufferSize;
-    uint32_t trackCount;
-} FDTD3DParams;
+// FDTD3DParams is defined in ShaderTypes.h (shared with Swift)
 
 // Inline helper functions for 3D indexing
 inline uint grid_index_3d(uint x, uint y, uint z, uint nx, uint ny) {

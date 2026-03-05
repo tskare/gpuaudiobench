@@ -633,26 +633,6 @@ class WebGPUBenchmarkApp {
         ]);
         actionsDiv.appendChild(resetButton);
 
-        const loadButton = this.createElement('sl-button', {
-            id: `load-preset-${benchmarkId}`,
-            variant: 'outline',
-            size: 'small'
-        }, [
-            this.createElement('sl-icon', { slot: 'prefix', name: 'folder-open' }),
-            'Load Preset'
-        ]);
-        actionsDiv.appendChild(loadButton);
-
-        const saveButton = this.createElement('sl-button', {
-            id: `save-preset-${benchmarkId}`,
-            variant: 'outline',
-            size: 'small'
-        }, [
-            this.createElement('sl-icon', { slot: 'prefix', name: 'floppy' }),
-            'Save Preset'
-        ]);
-        actionsDiv.appendChild(saveButton);
-
         details.appendChild(actionsDiv);
 
         return details;
@@ -719,10 +699,10 @@ class WebGPUBenchmarkApp {
 
         return controlDiv;
     }
-    generateParameterControls(benchmarkId) {
-        // Deprecated: kept for backward compatibility.
-        return '';
-    }
+
+    /**
+     * Create individual parameter control
+     */
     createParameterControl(benchmarkId, param) {
         const paramId = `${benchmarkId}-${param.id}`;
         const unit = param.unit ? ` ${param.unit}` : '';
@@ -805,15 +785,6 @@ class WebGPUBenchmarkApp {
             resetButton.addEventListener('click', () => this.resetParametersToDefaults(benchmarkId));
         }
 
-        const loadButton = document.getElementById(`load-preset-${benchmarkId}`);
-        if (loadButton) {
-            loadButton.addEventListener('click', () => this.showPresetLoader(benchmarkId));
-        }
-
-        const saveButton = document.getElementById(`save-preset-${benchmarkId}`);
-        if (saveButton) {
-            saveButton.addEventListener('click', () => this.showPresetSaver(benchmarkId));
-        }
     }
     updateParameterValue(benchmarkId, paramId, value) {
         if (!this.benchmarkParameters.has(benchmarkId)) {
@@ -905,12 +876,10 @@ class WebGPUBenchmarkApp {
             }
         });
     }
-    showPresetLoader(benchmarkId) {
-        alert('Preset loading feature coming soon!');
-    }
-    showPresetSaver(benchmarkId) {
-        alert('Preset saving feature coming soon!');
-    }
+
+    /**
+     * Setup event listeners
+     */
     setupEventListeners() {
         console.log('Event listeners will be added dynamically for selected benchmarks');
     }

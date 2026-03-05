@@ -64,7 +64,7 @@ Gain processing with per-track statistics (mean, max). Standard parameters.
 
 #### Conv1D
 1D convolution with windowed sinc impulse responses. Per-track IRs with frequency variation. Tests constant/texture memory performance vs device memory.
-- `impulseResponseLength`: IR length (default: 256)
+- `impulseResponseLength`: IR length (default: 256 for Conv1D, 512 for Conv1D_accel)
 - `useConstantMemory`: Use constant memory for IRs (default: true)
 
 #### Conv1D_accel
@@ -114,18 +114,18 @@ Optimized digital waveguide synthesis with platform-specific acceleration. Stand
 
 | Benchmark | Metal-Swift | CUDA | WebGPU | Notes |
 |-----------|-------------|------|--------|-------|
-| NoOp | ✓ | ✗ | ✓ | Kernel launch overhead |
-| datacopy* | ✓ | ✗ | ✓ | Data transfer variations (5 ratios) |
+| NoOp | ✓ | ✓ | ✓ | Kernel launch overhead |
+| datacopy* | ✓ | ✓ | ✓ | Data transfer variations (5 ratios) |
 | gain | ✓ | ✓ | ✓ | Basic gain processing |
-| GainStats | ✓ | ✗ | ✓ | Gain with statistics |
-| IIRFilter | ✓ | ✗ | ✓ | Biquad filtering |
+| GainStats | ✓ | ✓ | ✓ | Gain with statistics |
+| IIRFilter | ✓ | ✓ | ✓ | Biquad filtering |
 | Conv1D | ✓ | ✓ | ✓ | Direct convolution |
-| Conv1D_accel | ✓ | ✗ | ✓ | FFT-based convolution |
-| FFT1D | ✓ | ✗ | ✓ | Real-to-complex FFT |
+| Conv1D_accel | ✓ | ✓ | ✓ | FFT-based convolution |
+| FFT1D | ✓ | ✓ | ✓ | Real-to-complex FFT |
 | RndMemRead | ✓ | ✓ | ✓ | Random memory access |
 | ModalFilterBank | ✓ | ✓ | ✓ | Modal synthesis |
-| DWG1DNaive | ✓ | ✗ | ✓ | Digital waveguides |
-| DWG1DAccel | ✓ | ✗ | ✓ | Optimized waveguides |
+| DWG1DNaive | ✓ | ✓ | ✓ | Digital waveguides |
+| DWG1DAccel | ✓ | ✓ | ✓ | Optimized waveguides |
 | FDTD3D | ✓ | ✓ | ✓ | 3D room acoustics |
 
 ## Running Benchmarks

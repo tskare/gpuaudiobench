@@ -94,8 +94,3 @@ __global__ void ExtractRealPartKernel(
     int buffer_size,
     int num_tracks);
 
-// ============================================================================
-// Legacy Interface Wrapper
-// ============================================================================
-
-void RunConv1DAccelBenchmark();

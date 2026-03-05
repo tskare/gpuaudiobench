@@ -8,7 +8,7 @@
 class Conv1DBenchmark : public GPUABenchmark {
 public:
     // Configuration
-    static const int DEFAULT_IR_LEN = 1024;
+    static const int DEFAULT_IR_LEN = 256;
 
     // ============================================================================
     // Constructor/Destructor

@@ -374,23 +374,4 @@ void Conv1DAccelBenchmark::cleanupFFTPlans() {
     }
 }
 
-// ============================================================================
-// Legacy Interface Wrapper
-// ============================================================================
 
-void RunConv1DAccelBenchmark() {
-    printf("Running Conv1D Accelerated Benchmark...\n");
-
-    Conv1DAccelBenchmark benchmark;
-    benchmark.setupBenchmark();
-
-    std::vector<float> latencies;
-    benchmark.runBenchmarkIterations(latencies);
-
-    // Validate results
-    ValidationData validation;
-    benchmark.validate(validation);
-
-    // Print summary
-    benchmark.printSummary(latencies, validation);
-}

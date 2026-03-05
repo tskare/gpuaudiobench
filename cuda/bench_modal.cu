@@ -1,4 +1,5 @@
 #include "bench_modal.cuh"
+#include "benchmark_constants.cuh"
 #include <cstring>
 #include <cmath>
 
@@ -18,12 +19,12 @@ __global__ void ModalSynthesisKernel(const float* bufIn, float* bufOut, int nMod
     const int bufferSize = static_cast<int>(params.bufferSize);
     if (i < nModes) {
         float amp = bufIn[i * ModalBenchmark::NUM_MODE_PARAMS + ModalBenchmark::AMPLITUDE];
-        float state_re = bufIn[i * ModalBenchmark::NUM_MODE_PARAMS + ModalBenchmark::RESERVED1];
-        float state_im = bufIn[i * ModalBenchmark::NUM_MODE_PARAMS + ModalBenchmark::RESERVED2];
+        float freq = bufIn[i * ModalBenchmark::NUM_MODE_PARAMS + ModalBenchmark::FREQUENCY];
+        float phase = bufIn[i * ModalBenchmark::NUM_MODE_PARAMS + ModalBenchmark::PHASE];
 
-        state_re = 0.5f;
-        state_im = 0.5f;
-        cuComplex start = make_cuComplex(state_re, state_im);
+        cuComplex start = make_cuComplex(
+            BenchmarkConstants::MODAL_STATE_INIT_REAL,
+            BenchmarkConstants::MODAL_STATE_INIT_IMAG);
         const cuComplex value = my_cexpf(start);
         const float output_value = amp * value.x;
 
@@ -36,7 +37,7 @@ __global__ void ModalSynthesisKernel(const float* bufIn, float* bufOut, int nMod
 }
 
 ModalBenchmark::ModalBenchmark()
-    : GPUABenchmark("Modal", BUFSIZE, MODAL_OUTPUT_TRACKS) {
+    : GPUABenchmark("ModalFilterBank", BUFSIZE, MODAL_OUTPUT_TRACKS) {  // Use modal-specific track count
 
     mode_params_size = NUM_MODES * NUM_MODE_PARAMS;
     mode_params_bytes = mode_params_size * sizeof(float);

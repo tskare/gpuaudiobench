@@ -57,6 +57,8 @@ void DataTransferBenchmark::setupBenchmark() {
     cpu_reference = BenchmarkUtils::allocateHostBuffer<float>(
         output_size, std::string(config_.name) + " cpu reference");
 
+    // Initialize input data with fixed seed for reproducibility
+    srand(42);
     for (int i = 0; i < input_size; ++i) {
         h_input_var[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     }

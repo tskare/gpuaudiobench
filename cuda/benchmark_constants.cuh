@@ -4,7 +4,12 @@
 namespace BenchmarkConstants {
     // Gain processing.
     constexpr float GAIN_VALUE = 2.0f;
-    constexpr float GAINSTATS_GAIN = 0.5f;
+
+    /**
+     * Gain multiplier for statistics benchmarks
+     * Matches STANDARD_PARAMS.md specification (2.0)
+     */
+    constexpr float GAINSTATS_GAIN = 2.0f;
 
     // FDTD3D scaling.
     constexpr float FDTD3D_SOURCE_SCALE = 0.1f;

@@ -299,6 +299,13 @@ export class GPUABenchmark {
         return latencies;
     }
     createBuffer(name, size, usage) {
+        const maxSize = this.device.limits.maxBufferSize;
+        if (size > maxSize) {
+            throw new Error(
+                `${this.name}: buffer '${name}' size ${size} exceeds device limit ${maxSize}`
+            );
+        }
+
         const buffer = this.device.createBuffer({
             size,
             usage,

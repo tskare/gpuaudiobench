@@ -14,12 +14,28 @@ export class Statistics {
             };
         }
 
-        const sorted = [...values].sort((a, b) => a - b);
+        // Filter out NaN and non-finite values to prevent corruption of statistics
+        const finite = values.filter(v => Number.isFinite(v));
+        if (finite.length === 0) {
+            return {
+                count: 0,
+                min: 0,
+                max: 0,
+                mean: 0,
+                median: 0,
+                p95: 0,
+                p99: 0,
+                stddev: 0,
+                variance: 0
+            };
+        }
+
+        const sorted = [...finite].sort((a, b) => a - b);
         const count = sorted.length;
 
         const min = sorted[0];
         const max = sorted[count - 1];
-        const sum = values.reduce((acc, val) => acc + val, 0);
+        const sum = sorted.reduce((acc, val) => acc + val, 0);
         const mean = sum / count;
 
         const median = count % 2 === 0
@@ -29,7 +45,8 @@ export class Statistics {
         const p95 = this.percentile(sorted, 95);
         const p99 = this.percentile(sorted, 99);
 
-        const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / count;
+        // Variance and standard deviation
+        const variance = sorted.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / count;
         const stddev = Math.sqrt(variance);
 
         return {

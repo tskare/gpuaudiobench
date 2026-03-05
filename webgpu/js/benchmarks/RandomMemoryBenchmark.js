@@ -182,13 +182,8 @@ export class RandomMemoryBenchmark extends GPUABenchmark {
             total_threads: Math.ceil(this.trackCount / 64) * 64,
             active_threads: this.trackCount,
             total_samples: this.bufferSize * this.trackCount,
-            memory_reads_per_iteration: this.bufferSize * this.trackCount,
-            estimated_bandwidth_gb_s: this.estimateBandwidth()
+            memory_reads_per_iteration: this.bufferSize * this.trackCount
         };
-    }
-
-    estimateBandwidth() {
-        return 0; // Placeholder, will be updated in metadata
     }
 
     formatBytes(bytes) {

@@ -296,12 +296,12 @@ void DWGBenchmark::allocateDWGBuffers() {
         output_buffer_size, benchmark_name_ + " host output buffer");
 
     // Allocate device buffers
-    cudaMalloc(&d_waveguide_params, getTrackCount() * sizeof(WaveguideState));
-    cudaMalloc(&d_dwg_params, sizeof(DWGParams));
-    cudaMalloc(&d_delay_forward, delay_line_bytes);
-    cudaMalloc(&d_delay_backward, delay_line_bytes);
-    cudaMalloc(&d_input_signal, getBufferSize() * sizeof(float));
-    cudaMalloc(&d_output_buffer, output_buffer_bytes);
+    CUDA_CHECK(cudaMalloc(&d_waveguide_params, getTrackCount() * sizeof(WaveguideState)));
+    CUDA_CHECK(cudaMalloc(&d_dwg_params, sizeof(DWGParams)));
+    CUDA_CHECK(cudaMalloc(&d_delay_forward, delay_line_bytes));
+    CUDA_CHECK(cudaMalloc(&d_delay_backward, delay_line_bytes));
+    CUDA_CHECK(cudaMalloc(&d_input_signal, getBufferSize() * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_output_buffer, output_buffer_bytes));
 
     // Initialize delay lines and output to zero
     memset(h_delay_forward, 0, delay_line_bytes);

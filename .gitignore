@@ -1,6 +1,9 @@
 # Mac
 .DS_Store
 
+# AI helpers
+.claude/
+
 # plaintext todo/feature tracking
 PLAN-*.md
 TODO-*.md

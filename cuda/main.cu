@@ -48,8 +48,6 @@
 #include <utility>
 #include <vector>
 
-#include <helper_cuda.h>
-
 #include "globals.cuh"
 
 using std::cout;
@@ -197,11 +195,11 @@ static void printHelp() {
 	printf("=====================\n");
 
 	printf("\nData Transfer:\n");
-	printf("  datacopy0199     - 99%% input, 1%% output transfer\n");
-	printf("  datacopy2080     - 80%% input, 20%% output transfer\n");
+	printf("  datacopy0199     - 1%% input, 99%% output transfer\n");
+	printf("  datacopy2080     - 20%% input, 80%% output transfer\n");
 	printf("  datacopy5050     - 50%% input, 50%% output transfer\n");
-	printf("  datacopy8020     - 20%% input, 80%% output transfer\n");
-	printf("  datacopy9901     - 1%% input, 99%% output transfer\n");
+	printf("  datacopy8020     - 80%% input, 20%% output transfer\n");
+	printf("  datacopy9901     - 99%% input, 1%% output transfer\n");
 
 	printf("\nBasic Audio Processing:\n");
 	printf("  NoOp             - No-operation baseline\n");
@@ -236,7 +234,7 @@ static void printHelp() {
 int main(int argc, char** argv) {
 	printf("GPGPU Audio Benchmark\n");
 
-	std::string whichBenchmark = "RndMemRead";
+	std::string whichBenchmark = "gain";
 
 	// Skip first argument, the executable name.
 	for (int i = 1; i < argc; i++) {
